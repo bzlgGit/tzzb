@@ -31,16 +31,34 @@ const val POLL_FUND_ASSETS_INIT_STATUS = "4000:/caishen_fund/common/fund_cal_pol
  */
 @Keep
 data class FundCalPollingReq(
-    @SerializedName("fundid")
-    val fundid: String,
-    @SerializedName("page_id")
-    val page_id: String,
-    @SerializedName("account_type")
-    val accountType: String = "fund",
-    @SerializedName("id")
-    val id: String = "",
+    /**
+     * userid
+     */
     @SerializedName("userid")
     var userid: String = "",
+    /**
+     * 页面id  不同页面不同id
+     */
+    @SerializedName("page_id")
+    val page_id: String,
+    /**
+     * fundid 账户id ,如果用户维度则不传
+     */
+    @SerializedName("fundid")
+    val fundid: String,
+    /**
+     * 写死fund 可选传
+     */
+    @SerializedName("account_type")
+    val accountType: String = "fund",
+    /**
+     * h5id 原样返回
+     */
+    @SerializedName("id")
+    val id: String = "",
+    /**
+     * 客户端本次轮询次数
+     */
     @SerializedName("polling_times")
     var pollingTimes:String? = ""
 ) : BaseReq()
@@ -56,14 +74,19 @@ data class FundCalPollingResp(
 ) : BaseT()
 
 /**
- *  // 0 计算成功  1计算中 -1计算失败
  * @property fundid
  * @property status
  */
 @Keep
 data class ExData(
+    /**
+     * fid
+     */
     @SerializedName("fundid")
     val fundid: String? = "",
+    /**
+     * 状态
+     */
     @SerializedName("status")
     val status: String? = ""
 )
@@ -73,10 +96,35 @@ data class ExData(
  */
 interface FundCalPolling {
 
-
     /**
-     * 基金计算轮循接口
-     * <a href="http://software.myhexin.com/yapi/project/1526/interface/api/38556">...</a>
+     * 判断当前页面数据是否准备完成
+     * 1、通过fundid生成对应账号数据状态的key，从redis中获取状态
+     * 2、通过页面id判断当前页面数据是否已经和计算模块当前计算状态匹配。
+     *
+     * 计算完成后可查询最新的持仓数据
+     *
+     * page_id约定 :
+     * fund_assets  //基金持仓页
+     * fund_index   //基金首页
+     *
+     * {
+     *   "error_code": "0",
+     *   "error_msg": "success",
+     *   "ex_data": [
+     *                         {
+     *                            "fundid":1234,
+     *                            "status":0,   // 0 计算成功  1计算中 -1计算失败
+     *                         },
+     *                         {
+     *                            "fundid":12345,
+     *                            "status":0,   //
+     *                         }
+     *                    ]
+     * }
+     * 4000:/caishen_fund/common/fund_cal_polling
+     * 基金账户计算轮询接口
+     * @param param FundCalPollingReq
+     * @return FundCalPollingResp
      */
     @API(POLL_FUND_ASSETS_INIT_STATUS)
     @POST(RetrofitManager.RETROFIT_PASS_THROUGH_URL)

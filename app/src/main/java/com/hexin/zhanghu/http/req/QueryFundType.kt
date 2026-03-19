@@ -29,8 +29,14 @@ const val QUERY_FUND_TYPE = "4000:/caishen_fund/fund_common/v1/query_fund_type";
  */
 @Keep
 data class QueryFundTypeReq(
+    /**
+     * 同花顺id
+     */
     @SerializedName("userid")
     val userid: String = "",
+    /**
+     * 基金代码，逗号分隔
+     */
     @SerializedName("fundcodes")
     val fundcodes: String = ""
 ) : BaseReq()
@@ -41,16 +47,28 @@ data class QueryFundTypeReq(
  */
 @Keep
 data class QueryFundTypeResp(
+    /**
+     * 基金查询结果列表
+     */
     @SerializedName("list")
     var list: List<FundTypeData>? = emptyList()
 ) : BaseT()
 
 @Keep
 data class FundTypeData(
+    /**
+     * 基金代码
+     */
     @SerializedName("code")
     var code: String? = "",
+    /**
+     * 基金名称
+     */
     @SerializedName("name")
     var name: String? = "",
+    /**
+     * 基金类型
+     */
     @SerializedName("fund_type")
     var fundType: String? = ""
 )
@@ -60,10 +78,12 @@ data class FundTypeData(
  */
 interface QueryFundType {
     /**
-     * [...](http://yapi.myhexin.com/yapi/service/311467/interface/api/440875)
+     * 基金类型,对应fund01表 0-股票型；1-债券型；2-混合型；3-货币型；4-其他；6-基金型；7-保本型；8-REITs
+     *
+     * 4000:/caishen_fund/fund_common/v1/query_fund_type
      * 批量查询基金类型
-     * @param param 组装好的fundcodes
-     * @return 基金类型列表  0-股票型；1-债券型；2-混合型；3-货币型；4-其他；6-基金型；7-保本型；8-REITs
+     * @param param QueryFundTypeReq
+     * @return QueryFundTypeResp
      */
     @API(QUERY_FUND_TYPE)
     @POST(RetrofitManager.RETROFIT_PASS_THROUGH_URL)
