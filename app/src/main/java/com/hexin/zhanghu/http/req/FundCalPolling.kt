@@ -30,7 +30,7 @@ const val POLL_FUND_ASSETS_INIT_STATUS = "4000:/caishen_fund/common/fund_cal_pol
  * 生成的请求数据类代码
  */
 @Keep
-data class FundInitPollReq(
+data class FundCalPollingReq(
     @SerializedName("fundid")
     val fundid: String,
     @SerializedName("page_id")
@@ -50,7 +50,7 @@ data class FundInitPollReq(
  * 生成的响应数据类代码
  */
 @Keep
-data class FundPollResp(
+data class FundCalPollingResp(
     @SerializedName("ex_data")
     val exData: List<ExData>? = listOf()
 ) : BaseT()
@@ -71,7 +71,7 @@ data class ExData(
 /**
  * 请求接口API
  */
-interface FundInitPoll {
+interface FundCalPolling {
 
 
     /**
@@ -81,5 +81,5 @@ interface FundInitPoll {
     @API(POLL_FUND_ASSETS_INIT_STATUS)
     @POST(RetrofitManager.RETROFIT_PASS_THROUGH_URL)
     @Encrypt(encryptType = AES, keyType = PROTOCOL_KEY)
-    fun  pollFundAssetsInitStatus(@Body  params:FundInitPollReq):Observable<FundPollResp>;
+    fun  fundCalPolling(@Body  params:FundCalPollingReq):Observable<FundCalPollingResp>;
 }
