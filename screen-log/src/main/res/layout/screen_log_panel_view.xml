@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/screen_log_panel_bg"
+    android:paddingStart="10dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="10dp"
+    android:paddingBottom="8dp">
+
+    <TextView
+        android:id="@+id/screenLogTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:gravity="center_vertical"
+        android:text="@string/screen_log_panel_title"
+        android:textColor="@color/screen_log_text_primary"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/screenLogCopyFiltered"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:background="@drawable/screen_log_button_bg"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/screen_log_copy_filtered"
+        android:textAllCaps="false"
+        android:textColor="@color/screen_log_accent"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="@id/screenLogTitle"
+        app:layout_constraintEnd_toStartOf="@id/screenLogClear"
+        app:layout_constraintTop_toTopOf="@id/screenLogTitle" />
+
+    <Button
+        android:id="@+id/screenLogClear"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/screen_log_button_bg"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/screen_log_clear"
+        android:textAllCaps="false"
+        android:textColor="@color/screen_log_accent"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="@id/screenLogTitle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/screenLogTitle" />
+
+    <EditText
+        android:id="@+id/screenLogSearch"
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/screen_log_field_bg"
+        android:hint="@string/screen_log_search_hint"
+        android:inputType="text"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:singleLine="true"
+        android:textColor="@color/screen_log_text_primary"
+        android:textColorHint="@color/screen_log_text_secondary"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/screenLogTitle" />
+
+    <Spinner
+        android:id="@+id/screenLogLevel"
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/screen_log_field_bg"
+        app:layout_constraintEnd_toStartOf="@id/screenLogTag"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/screenLogSearch" />
+
+    <Spinner
+        android:id="@+id/screenLogTag"
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/screen_log_field_bg"
+        app:layout_constraintEnd_toStartOf="@id/screenLogPause"
+        app:layout_constraintStart_toEndOf="@id/screenLogLevel"
+        app:layout_constraintTop_toTopOf="@id/screenLogLevel" />
+
+    <Button
+        android:id="@+id/screenLogPause"
+        android:layout_width="78dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/screen_log_button_bg"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:text="@string/screen_log_pause"
+        android:textAllCaps="false"
+        android:textColor="@color/screen_log_accent"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/screenLogLevel" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/screenLogList"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:clipToPadding="false"
+        android:paddingBottom="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/screenLogLevel" />
+</androidx.constraintlayout.widget.ConstraintLayout>

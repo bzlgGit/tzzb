@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="screen_log_bg">#F8FAFC</color>
+    <color name="screen_log_panel_bg">#FDFEFE</color>
+    <color name="screen_log_text_primary">#111827</color>
+    <color name="screen_log_text_secondary">#5B6472</color>
+    <color name="screen_log_line">#DCE2EA</color>
+    <color name="screen_log_accent">#0F766E</color>
+    <color name="screen_log_error">#B42318</color>
+    <color name="screen_log_warn">#A15C07</color>
+    <color name="screen_log_info">#175CD3</color>
+</resources>

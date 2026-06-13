@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="screen_log_entry">Log</string>
+    <string name="screen_log_panel_title">Screen Log</string>
+    <string name="screen_log_search_hint">Search tag, message, extras</string>
+    <string name="screen_log_level_all">ALL</string>
+    <string name="screen_log_tag_all">All tags</string>
+    <string name="screen_log_copy_filtered">Copy filtered</string>
+    <string name="screen_log_clear">Clear</string>
+    <string name="screen_log_pause">Pause</string>
+    <string name="screen_log_resume">Resume</string>
+    <string name="screen_log_settings">Settings</string>
+</resources>

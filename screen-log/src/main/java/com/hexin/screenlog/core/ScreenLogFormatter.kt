@@ -1,0 +1,65 @@
+package com.hexin.screenlog.core
+
+import com.hexin.screenlog.api.ScreenLogLevel
+import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+object ScreenLogFormatter {
+
+    private val timeFormat = ThreadLocal.withInitial {
+        SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
+    }
+
+    fun display(entry: ScreenLogEntry): String {
+        return buildString {
+            append("[")
+            append(formatTime(entry.timeMillis))
+            append("][")
+            append(entry.level.name)
+            append("][")
+            append(entry.tag)
+            append("] ")
+            append(entry.message)
+            if (!entry.extras.isNullOrEmpty()) {
+                append(" extras=")
+                append(entry.extras)
+            }
+        }
+    }
+
+    fun formatTime(timeMillis: Long): String {
+        return timeFormat.get()?.format(Date(timeMillis)).orEmpty()
+    }
+
+    fun serialize(entry: ScreenLogEntry): String {
+        val json = JSONObject()
+        json.put("timeMillis", entry.timeMillis)
+        json.put("level", entry.level.name)
+        json.put("tag", entry.tag)
+        json.put("message", entry.message)
+        json.put("threadName", entry.threadName)
+        val extras = JSONObject()
+        entry.extras.orEmpty().forEach { (key, value) -> extras.put(key, value) }
+        json.put("extras", extras)
+        return json.toString()
+    }
+
+    fun deserialize(line: String): ScreenLogEntry? {
+        return runCatching {
+            val json = JSONObject(line)
+            val extrasJson = json.optJSONObject("extras")
+            val extras = extrasJson?.keys()?.asSequence()?.associateWith { extrasJson.optString(it) }
+                ?.takeIf { it.isNotEmpty() }
+            ScreenLogEntry(
+                timeMillis = json.optLong("timeMillis"),
+                level = ScreenLogLevel.valueOf(json.optString("level")),
+                tag = json.optString("tag"),
+                message = json.optString("message"),
+                threadName = json.optString("threadName").takeIf { it.isNotBlank() && it != "null" },
+                extras = extras
+            )
+        }.getOrNull()
+    }
+}
