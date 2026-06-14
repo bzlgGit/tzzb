@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.hexin.screenlog.R
 import com.hexin.screenlog.api.ScreenLogLevel
 import com.hexin.screenlog.api.ScreenLogManager
+import com.hexin.screenlog.api.ScreenLogTouchMode
 import com.hexin.screenlog.core.ScreenLogDispatcher
 import com.hexin.screenlog.core.ScreenLogFormatter
 import com.hexin.screenlog.databinding.ScreenLogPanelViewBinding
@@ -31,6 +32,7 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
     private var filteredEntries = emptyList<com.hexin.screenlog.core.ScreenLogEntry>()
     private var large = false
     private var refreshPosted = false
+    private var touchMode = ScreenLogManager.getTouchMode()
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent): Boolean {
@@ -47,6 +49,18 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
         setupActions()
         setOnTouchListener { _, event -> gestureDetector.onTouchEvent(event) }
         refreshNow()
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        return if (touchMode == ScreenLogTouchMode.UNDERLYING_PAGE) {
+            false
+        } else {
+            super.dispatchTouchEvent(event)
+        }
+    }
+
+    fun setTouchMode(mode: ScreenLogTouchMode) {
+        touchMode = mode
     }
 
     override fun onAttachedToWindow() {

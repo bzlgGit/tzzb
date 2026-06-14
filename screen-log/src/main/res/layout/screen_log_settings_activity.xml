@@ -31,15 +31,41 @@
         app:layout_constraintTop_toBottomOf="@id/screenLogSettingsTitle" />
 
     <Button
-        android:id="@+id/screenLogClearAll"
+        android:id="@+id/screenLogTouchLogPanel"
         android:layout_width="0dp"
         android:layout_height="44dp"
         android:layout_marginTop="18dp"
+        android:background="@drawable/screen_log_button_bg"
+        android:text="@string/screen_log_touch_log_panel"
+        android:textAllCaps="false"
+        android:textColor="@color/screen_log_accent"
+        app:layout_constraintEnd_toStartOf="@id/screenLogTouchUnderlyingPage"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/screenLogSettingsSummary" />
+
+    <Button
+        android:id="@+id/screenLogTouchUnderlyingPage"
+        android:layout_width="0dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="10dp"
+        android:background="@drawable/screen_log_button_bg"
+        android:text="@string/screen_log_touch_underlying_page"
+        android:textAllCaps="false"
+        android:textColor="@color/screen_log_accent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/screenLogTouchLogPanel"
+        app:layout_constraintTop_toTopOf="@id/screenLogTouchLogPanel" />
+
+    <Button
+        android:id="@+id/screenLogClearAll"
+        android:layout_width="0dp"
+        android:layout_height="44dp"
+        android:layout_marginTop="14dp"
         android:background="@drawable/screen_log_button_bg"
         android:text="@string/screen_log_clear"
         android:textAllCaps="false"
         android:textColor="@color/screen_log_accent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/screenLogSettingsSummary" />
+        app:layout_constraintTop_toBottomOf="@id/screenLogTouchLogPanel" />
 </androidx.constraintlayout.widget.ConstraintLayout>

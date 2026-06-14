@@ -5,12 +5,14 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.hexin.screenlog.api.ScreenLogManager
+import com.hexin.screenlog.api.ScreenLogTouchMode
 import com.hexin.screenlog.core.ScreenLogDispatcher
 
 class ScreenLogMenuView(context: Context) : LinearLayout(context), ScreenLogDispatcher.Listener {
 
     private val panelItem = menuItem("Show panel")
     private val scrollItem = menuItem("Pause scroll")
+    private val touchModeItem = menuItem("Touch: Log")
 
     init {
         orientation = VERTICAL
@@ -20,6 +22,7 @@ class ScreenLogMenuView(context: Context) : LinearLayout(context), ScreenLogDisp
 
         addView(panelItem)
         addView(scrollItem)
+        addView(touchModeItem)
         addView(menuItem("Clear logs").apply {
             setOnClickListener { ScreenLogManager.clearLogs() }
         })
@@ -38,6 +41,7 @@ class ScreenLogMenuView(context: Context) : LinearLayout(context), ScreenLogDisp
                 ScreenLogManager.pauseAutoScroll()
             }
         }
+        touchModeItem.setOnClickListener { ScreenLogManager.toggleTouchMode() }
     }
 
     override fun onAttachedToWindow() {
@@ -53,6 +57,14 @@ class ScreenLogMenuView(context: Context) : LinearLayout(context), ScreenLogDisp
 
     fun setPanelVisible(visible: Boolean) {
         panelItem.text = if (visible) "Hide panel" else "Show panel"
+    }
+
+    fun setTouchMode(mode: ScreenLogTouchMode) {
+        touchModeItem.text = if (mode == ScreenLogTouchMode.LOG_PANEL) {
+            "Touch: Log"
+        } else {
+            "Touch: Page"
+        }
     }
 
     override fun onLogsChanged() = Unit

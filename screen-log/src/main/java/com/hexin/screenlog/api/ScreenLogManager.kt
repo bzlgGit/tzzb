@@ -27,6 +27,7 @@ object ScreenLogManager {
     private var panelView: ScreenLogPanelView? = null
     private var floatingVisible = false
     private var panelVisible = false
+    private var touchMode = ScreenLogTouchMode.LOG_PANEL
 
     fun init(config: ScreenLogConfig) {
         this.config = config
@@ -90,6 +91,26 @@ object ScreenLogManager {
         ScreenLogDispatcher.setAutoScrollPaused(false)
     }
 
+    fun getTouchMode(): ScreenLogTouchMode = touchMode
+
+    fun setTouchMode(mode: ScreenLogTouchMode) {
+        touchMode = mode
+        runOnMain {
+            panelView?.setTouchMode(mode)
+            floatingView?.setTouchMode(mode)
+        }
+    }
+
+    fun toggleTouchMode() {
+        setTouchMode(
+            if (touchMode == ScreenLogTouchMode.LOG_PANEL) {
+                ScreenLogTouchMode.UNDERLYING_PAGE
+            } else {
+                ScreenLogTouchMode.LOG_PANEL
+            }
+        )
+    }
+
     internal fun togglePanel() {
         if (panelVisible) hidePanel() else showPanel()
     }
@@ -131,6 +152,7 @@ object ScreenLogManager {
             appendLine("Keep days: ${cfg.keepDays}")
             appendLine("Max file: ${cfg.maxFileSizeMb}MB")
             appendLine("Min level: ${cfg.minLevel}")
+            appendLine("Touch target: ${if (touchMode == ScreenLogTouchMode.LOG_PANEL) "log panel" else "underlying page"}")
             appendLine("Memory entries: ${ScreenLogDispatcher.snapshot().size}")
             appendLine()
             append(if (fileInfo.isBlank()) "No log files." else fileInfo)
@@ -182,6 +204,7 @@ object ScreenLogManager {
             )
             view.bringToFront()
             view.translationZ = activity.dp(24).toFloat()
+            view.setTouchMode(touchMode)
         }
     }
 
@@ -201,6 +224,7 @@ object ScreenLogManager {
             )
             view.bringToFront()
             view.translationZ = activity.dp(32).toFloat()
+            view.setTouchMode(touchMode)
             floatingView?.bringToFront()
             floatingView?.setPanelVisible(true)
         }

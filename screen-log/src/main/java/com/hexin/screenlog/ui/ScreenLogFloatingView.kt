@@ -8,6 +8,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import com.hexin.screenlog.R
 import com.hexin.screenlog.api.ScreenLogManager
+import com.hexin.screenlog.api.ScreenLogTouchMode
 
 class ScreenLogFloatingView(context: Context) : FrameLayout(context) {
 
@@ -50,6 +51,10 @@ class ScreenLogFloatingView(context: Context) : FrameLayout(context) {
 
     fun setPanelVisible(visible: Boolean) {
         menuView.setPanelVisible(visible)
+    }
+
+    fun setTouchMode(mode: ScreenLogTouchMode) {
+        menuView.setTouchMode(mode)
     }
 
     private fun handleTouch(event: MotionEvent): Boolean {
