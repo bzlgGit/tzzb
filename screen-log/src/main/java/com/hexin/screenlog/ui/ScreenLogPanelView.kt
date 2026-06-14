@@ -26,7 +26,10 @@ import com.hexin.screenlog.databinding.ScreenLogPanelViewBinding
 import com.hexin.screenlog.filter.ScreenLogFilter
 import com.hexin.screenlog.filter.ScreenLogFilterMatcher
 
-class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDispatcher.Listener {
+internal class ScreenLogPanelView(
+    context: Context,
+    private val state: ScreenLogPanelState
+) : FrameLayout(context), ScreenLogDispatcher.Listener {
 
     private companion object {
         const val TAG = "ScreenLogPanelView"
@@ -34,11 +37,13 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
 
     private val adapter = ScreenLogAdapter(::copyEntry)
     private val binding = ScreenLogPanelViewBinding.inflate(LayoutInflater.from(context), this, true)
-    private var filter = ScreenLogFilter()
+    private var filter = state.filter
     private var filteredEntries = emptyList<com.hexin.screenlog.core.ScreenLogEntry>()
-    private var large = false
+    private var large = state.large
     private var refreshPosted = false
     private var touchMode = ScreenLogManager.getTouchMode()
+    private var suppressFilterCallbacks = false
+    private var restoreScrollPending = state.listPosition >= 0
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent): Boolean = true
@@ -51,7 +56,7 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
     })
 
     init {
-        layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, panelHeight(false), Gravity.BOTTOM)
+        layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, panelHeight(large), Gravity.BOTTOM)
         binding.screenLogList.layoutManager = LinearLayoutManager(context)
         binding.screenLogList.adapter = adapter
         trace("init, defaultHeight=${panelHeight(false)}, root=${binding.root.javaClass.simpleName}")
@@ -69,8 +74,18 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
                 return false
             }
         })
+        binding.screenLogList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                saveListPosition()
+            }
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                saveListPosition()
+            }
+        })
         setupFilters()
         setupActions()
+        restoreFilterControls()
         refreshNow()
     }
 
@@ -121,6 +136,7 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
     }
 
     override fun onDetachedFromWindow() {
+        saveListPosition()
         trace("onDetachedFromWindow")
         ScreenLogDispatcher.removeListener(this)
         super.onDetachedFromWindow()
@@ -144,7 +160,9 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
         binding.screenLogLevel.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, levels)
         binding.screenLogLevel.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (suppressFilterCallbacks) return
                 filter = filter.copy(level = if (position == 0) null else ScreenLogLevel.valueOf(levels[position]))
+                state.filter = filter
                 refreshNow()
             }
 
@@ -152,8 +170,10 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
         }
         binding.screenLogTag.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (suppressFilterCallbacks) return
                 val selected = parent?.getItemAtPosition(position)?.toString().orEmpty()
                 filter = filter.copy(tag = selected.takeIf { it != context.getString(R.string.screen_log_tag_all) })
+                state.filter = filter
                 refreshNow()
             }
 
@@ -162,7 +182,9 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
         binding.screenLogSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                if (suppressFilterCallbacks) return
                 filter = filter.copy(keyword = s?.toString().orEmpty())
+                state.filter = filter
                 onLogsChanged()
             }
             override fun afterTextChanged(s: Editable?) = Unit
@@ -184,26 +206,39 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
         updateTags(entries.map { it.tag }.distinct().sorted())
         filteredEntries = entries.filter { ScreenLogFilterMatcher.match(it, filter) }
         adapter.submitList(filteredEntries)
-        if (!ScreenLogDispatcher.isAutoScrollPaused() && filteredEntries.isNotEmpty()) {
+        if (restoreScrollPending) {
+            restoreListPosition()
+        } else if (!ScreenLogDispatcher.isAutoScrollPaused() && filteredEntries.isNotEmpty()) {
             binding.screenLogList.scrollToPosition(filteredEntries.lastIndex)
         }
     }
 
     private fun updateTags(tags: List<String>) {
         val values = listOf(context.getString(R.string.screen_log_tag_all)) + tags
-        val current = binding.screenLogTag.selectedItem?.toString()
+        val selectedTag = filter.tag ?: context.getString(R.string.screen_log_tag_all)
         val existing = (binding.screenLogTag.adapter as? ArrayAdapter<*>)?.let { adapter ->
             (0 until adapter.count).map { adapter.getItem(it).toString() }
         }
-        if (existing == values) return
+        if (existing == values) {
+            val index = values.indexOf(selectedTag).takeIf { it >= 0 } ?: 0
+            if (binding.screenLogTag.selectedItemPosition != index) {
+                suppressFilterCallbacks = true
+                binding.screenLogTag.setSelection(index)
+                suppressFilterCallbacks = false
+            }
+            return
+        }
         binding.screenLogTag.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, values)
-        val index = values.indexOf(current).takeIf { it >= 0 } ?: 0
+        val index = values.indexOf(selectedTag).takeIf { it >= 0 } ?: 0
+        suppressFilterCallbacks = true
         binding.screenLogTag.setSelection(index)
+        suppressFilterCallbacks = false
     }
 
     private fun toggleHeight() {
         val oldHeight = layoutParams?.height ?: 0
         large = !large
+        state.large = large
         val newHeight = panelHeight(large)
         trace("toggleHeight large=$large, oldHeight=$oldHeight, newHeight=$newHeight, parent=${parent?.javaClass?.simpleName}")
         layoutParams = layoutParams.apply { height = newHeight }
@@ -227,6 +262,37 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
 
     private fun trace(message: String) {
         Log.i(TAG, message)
+    }
+
+    private fun restoreFilterControls() {
+        suppressFilterCallbacks = true
+        binding.screenLogSearch.setText(filter.keyword)
+        val levelIndex = filter.level?.let { ScreenLogLevel.values().indexOf(it) + 1 } ?: 0
+        binding.screenLogLevel.setSelection(levelIndex.coerceAtLeast(0))
+        suppressFilterCallbacks = false
+    }
+
+    private fun saveListPosition() {
+        val layoutManager = binding.screenLogList.layoutManager as? LinearLayoutManager ?: return
+        val position = layoutManager.findFirstVisibleItemPosition()
+        if (position < 0) return
+        val top = layoutManager.findViewByPosition(position)?.top ?: 0
+        state.listPosition = position
+        state.listOffset = top
+    }
+
+    private fun restoreListPosition() {
+        val itemCount = adapter.itemCount
+        if (itemCount <= 0) {
+            restoreScrollPending = false
+            return
+        }
+        val position = state.listPosition.coerceIn(0, itemCount - 1)
+        binding.screenLogList.post {
+            (binding.screenLogList.layoutManager as? LinearLayoutManager)
+                ?.scrollToPositionWithOffset(position, state.listOffset)
+            restoreScrollPending = false
+        }
     }
 
     private fun copyEntry(entry: com.hexin.screenlog.core.ScreenLogEntry) {

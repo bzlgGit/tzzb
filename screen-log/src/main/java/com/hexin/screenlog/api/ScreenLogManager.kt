@@ -15,7 +15,9 @@ import com.hexin.screenlog.storage.ScreenLogFileReader
 import com.hexin.screenlog.storage.ScreenLogFileWriter
 import com.hexin.screenlog.ui.ScreenLogFloatingView
 import com.hexin.screenlog.ui.ScreenLogPanelView
+import com.hexin.screenlog.ui.ScreenLogPanelState
 import java.io.File
+import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicBoolean
 
 object ScreenLogManager {
@@ -25,12 +27,13 @@ object ScreenLogManager {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val initialized = AtomicBoolean(false)
     private var config: ScreenLogConfig? = null
-    private var currentActivity: Activity? = null
+    private var currentActivityRef: WeakReference<Activity>? = null
     private var floatingView: ScreenLogFloatingView? = null
     private var panelView: ScreenLogPanelView? = null
     private var floatingVisible = false
     private var panelVisible = false
     private var touchMode = ScreenLogTouchMode.LOG_PANEL
+    private val panelState = ScreenLogPanelState()
 
     fun init(config: ScreenLogConfig) {
         this.config = config
@@ -47,14 +50,14 @@ object ScreenLogManager {
 
     fun showFloatingEntry() {
         floatingVisible = true
-        runOnMain { attachFloating() }
+        runOnMain { currentActivity()?.let { attachFloating(it) } }
     }
 
     fun attachTo(activity: Activity) {
         runOnMain {
-            currentActivity = activity
-            if (floatingVisible) attachFloating()
-            if (panelVisible) attachPanel()
+            currentActivityRef = WeakReference(activity)
+            if (floatingVisible) attachFloating(activity)
+            if (panelVisible) attachPanel(activity)
         }
     }
 
@@ -62,15 +65,16 @@ object ScreenLogManager {
         floatingVisible = false
         runOnMain {
             hidePanel()
+            floatingView?.savePosition()
             floatingView?.let { removeFromParent(it) }
             floatingView = null
         }
     }
 
     fun showPanel() {
-        Log.i(TAG, "showPanel currentActivity=${currentActivity?.javaClass?.simpleName}, touchMode=$touchMode")
+        Log.i(TAG, "showPanel currentActivity=${currentActivity()?.javaClass?.simpleName}, touchMode=$touchMode")
         panelVisible = true
-        runOnMain { attachPanel() }
+        runOnMain { currentActivity()?.let { attachPanel(it) } }
     }
 
     fun hidePanel() {
@@ -121,7 +125,7 @@ object ScreenLogManager {
     }
 
     internal fun openSettings() {
-        val activity = currentActivity ?: return
+        val activity = currentActivity() ?: return
         activity.startActivity(android.content.Intent(activity, com.hexin.screenlog.ui.ScreenLogSettingsActivity::class.java))
     }
 
@@ -166,13 +170,14 @@ object ScreenLogManager {
 
     private val activityCallbacks = object : Application.ActivityLifecycleCallbacks {
         override fun onActivityResumed(activity: Activity) {
-            currentActivity = activity
-            if (floatingVisible) attachFloating()
-            if (panelVisible) attachPanel()
+            currentActivityRef = WeakReference(activity)
+            if (floatingVisible) attachFloating(activity)
+            if (panelVisible) attachPanel(activity)
         }
 
         override fun onActivityPaused(activity: Activity) {
-            if (currentActivity === activity) {
+            if (currentActivity() === activity) {
+                floatingView?.savePosition()
                 floatingView?.let { removeFromParent(it) }
                 panelView?.let { removeFromParent(it) }
                 floatingView = null
@@ -185,17 +190,19 @@ object ScreenLogManager {
         override fun onActivityStopped(activity: Activity) = Unit
         override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
         override fun onActivityDestroyed(activity: Activity) {
-            if (currentActivity === activity) currentActivity = null
+            if (currentActivity() === activity) currentActivityRef = null
         }
     }
 
-    private fun attachFloating() {
-        val activity = currentActivity ?: return
+    private fun attachFloating(activity: Activity) {
+        if (!activity.isUsable()) return
         val container = activity.findViewById<ViewGroup>(android.R.id.content) ?: return
         if (floatingView?.parent === container) return
         floatingView?.let { removeFromParent(it) }
-        floatingView = ScreenLogFloatingView(activity).also { view ->
+        floatingView = ScreenLogFloatingView(activity, panelState).also { view ->
             view.setPanelVisible(panelVisible)
+            val left = panelState.floatingX ?: activity.dp(12)
+            val top = panelState.floatingY ?: activity.dp(120)
             container.addView(
                 view,
                 FrameLayout.LayoutParams(
@@ -203,8 +210,8 @@ object ScreenLogManager {
                     FrameLayout.LayoutParams.WRAP_CONTENT,
                     android.view.Gravity.TOP or android.view.Gravity.START
                 ).apply {
-                    leftMargin = activity.dp(12)
-                    topMargin = activity.dp(120)
+                    leftMargin = left
+                    topMargin = top
                 }
             )
             view.bringToFront()
@@ -213,13 +220,17 @@ object ScreenLogManager {
         }
     }
 
-    private fun attachPanel() {
-        val activity = currentActivity ?: return
+    private fun attachPanel(activity: Activity) {
+        if (!activity.isUsable()) return
         val container = activity.findViewById<ViewGroup>(android.R.id.content) ?: return
         if (panelView?.parent === container) return
         panelView?.let { removeFromParent(it) }
-        panelView = ScreenLogPanelView(activity).also { view ->
-            val panelHeight = activity.resources.displayMetrics.heightPixels / 3
+        panelView = ScreenLogPanelView(activity, panelState).also { view ->
+            val panelHeight = if (panelState.large) {
+                activity.resources.displayMetrics.heightPixels * 2 / 3
+            } else {
+                activity.resources.displayMetrics.heightPixels / 3
+            }
             Log.i(TAG, "attachPanel container=${container.javaClass.simpleName}, childCount=${container.childCount}, height=$panelHeight, touchMode=$touchMode")
             container.addView(
                 view,
@@ -256,5 +267,14 @@ object ScreenLogManager {
             value.toFloat(),
             resources.displayMetrics
         ).toInt()
+    }
+
+    private fun currentActivity(): Activity? {
+        val activity = currentActivityRef?.get() ?: return null
+        return activity.takeIf { it.isUsable() }
+    }
+
+    private fun Activity.isUsable(): Boolean {
+        return !isFinishing && !isDestroyed
     }
 }

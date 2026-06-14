@@ -10,7 +10,10 @@ import com.hexin.screenlog.R
 import com.hexin.screenlog.api.ScreenLogManager
 import com.hexin.screenlog.api.ScreenLogTouchMode
 
-class ScreenLogFloatingView(context: Context) : FrameLayout(context) {
+internal class ScreenLogFloatingView(
+    context: Context,
+    private val state: ScreenLogPanelState
+) : FrameLayout(context) {
 
     private val entryButton = TextView(context)
     private val menuView = ScreenLogMenuView(context)
@@ -79,6 +82,7 @@ class ScreenLogFloatingView(context: Context) : FrameLayout(context) {
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 if (dragging) stickToEdge()
+                savePosition()
                 postDelayed({ dragging = false }, 80)
                 return false
             }
@@ -86,10 +90,15 @@ class ScreenLogFloatingView(context: Context) : FrameLayout(context) {
         return false
     }
 
+    fun savePosition() {
+        state.floatingX = x.toInt()
+        state.floatingY = y.toInt()
+    }
+
     private fun stickToEdge() {
         val parentWidth = (parent as? View)?.width ?: return
         val targetX = if (x + width / 2f > parentWidth / 2f) parentWidth - entryButton.width - context.dp(8) else context.dp(8)
-        animate().x(targetX.toFloat()).setDuration(160).start()
+        animate().x(targetX.toFloat()).setDuration(160).withEndAction { savePosition() }.start()
     }
 
     private fun resizeForMenu() {
