@@ -12,31 +12,21 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.EditText
 import android.widget.FrameLayout
-import android.widget.Spinner
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.hexin.screenlog.R
 import com.hexin.screenlog.api.ScreenLogLevel
 import com.hexin.screenlog.api.ScreenLogManager
 import com.hexin.screenlog.core.ScreenLogDispatcher
 import com.hexin.screenlog.core.ScreenLogFormatter
+import com.hexin.screenlog.databinding.ScreenLogPanelViewBinding
 import com.hexin.screenlog.filter.ScreenLogFilter
 import com.hexin.screenlog.filter.ScreenLogFilterMatcher
 
 class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDispatcher.Listener {
 
     private val adapter = ScreenLogAdapter(::copyEntry)
-    private val list: RecyclerView
-    private val search: EditText
-    private val levelSpinner: Spinner
-    private val tagSpinner: Spinner
-    private val pauseButton: Button
-    private val copyFilteredButton: Button
-    private val clearButton: Button
+    private val binding = ScreenLogPanelViewBinding.inflate(LayoutInflater.from(context), this, true)
     private var filter = ScreenLogFilter()
     private var filteredEntries = emptyList<com.hexin.screenlog.core.ScreenLogEntry>()
     private var large = false
@@ -51,17 +41,8 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
 
     init {
         layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, panelHeight(false), Gravity.BOTTOM)
-        LayoutInflater.from(context).inflate(R.layout.screen_log_panel_view, this, true)
-        list = findViewById(R.id.screenLogList)
-        search = findViewById(R.id.screenLogSearch)
-        levelSpinner = findViewById(R.id.screenLogLevel)
-        tagSpinner = findViewById(R.id.screenLogTag)
-        pauseButton = findViewById(R.id.screenLogPause)
-        copyFilteredButton = findViewById(R.id.screenLogCopyFiltered)
-        clearButton = findViewById(R.id.screenLogClear)
-
-        list.layoutManager = LinearLayoutManager(context)
-        list.adapter = adapter
+        binding.screenLogList.layoutManager = LinearLayoutManager(context)
+        binding.screenLogList.adapter = adapter
         setupFilters()
         setupActions()
         setOnTouchListener { _, event -> gestureDetector.onTouchEvent(event) }
@@ -90,13 +71,13 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
     }
 
     override fun onAutoScrollChanged(paused: Boolean) {
-        pauseButton.text = context.getString(if (paused) R.string.screen_log_resume else R.string.screen_log_pause)
+        binding.screenLogPause.text = context.getString(if (paused) R.string.screen_log_resume else R.string.screen_log_pause)
     }
 
     private fun setupFilters() {
         val levels = listOf(context.getString(R.string.screen_log_level_all)) + ScreenLogLevel.values().map { it.name }
-        levelSpinner.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, levels)
-        levelSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        binding.screenLogLevel.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, levels)
+        binding.screenLogLevel.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 filter = filter.copy(level = if (position == 0) null else ScreenLogLevel.valueOf(levels[position]))
                 refreshNow()
@@ -104,7 +85,7 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
 
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
-        tagSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        binding.screenLogTag.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selected = parent?.getItemAtPosition(position)?.toString().orEmpty()
                 filter = filter.copy(tag = selected.takeIf { it != context.getString(R.string.screen_log_tag_all) })
@@ -113,7 +94,7 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
 
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
-        search.addTextChangedListener(object : TextWatcher {
+        binding.screenLogSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 filter = filter.copy(keyword = s?.toString().orEmpty())
@@ -124,11 +105,11 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
     }
 
     private fun setupActions() {
-        pauseButton.setOnClickListener {
+        binding.screenLogPause.setOnClickListener {
             if (ScreenLogDispatcher.isAutoScrollPaused()) ScreenLogManager.resumeAutoScroll() else ScreenLogManager.pauseAutoScroll()
         }
-        clearButton.setOnClickListener { ScreenLogManager.clearLogs() }
-        copyFilteredButton.setOnClickListener {
+        binding.screenLogClear.setOnClickListener { ScreenLogManager.clearLogs() }
+        binding.screenLogCopyFiltered.setOnClickListener {
             copyText(filteredEntries.joinToString(separator = "\n") { ScreenLogFormatter.display(it) })
         }
     }
@@ -139,20 +120,20 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
         filteredEntries = entries.filter { ScreenLogFilterMatcher.match(it, filter) }
         adapter.submitList(filteredEntries)
         if (!ScreenLogDispatcher.isAutoScrollPaused() && filteredEntries.isNotEmpty()) {
-            list.scrollToPosition(filteredEntries.lastIndex)
+            binding.screenLogList.scrollToPosition(filteredEntries.lastIndex)
         }
     }
 
     private fun updateTags(tags: List<String>) {
         val values = listOf(context.getString(R.string.screen_log_tag_all)) + tags
-        val current = tagSpinner.selectedItem?.toString()
-        val existing = (tagSpinner.adapter as? ArrayAdapter<*>)?.let { adapter ->
+        val current = binding.screenLogTag.selectedItem?.toString()
+        val existing = (binding.screenLogTag.adapter as? ArrayAdapter<*>)?.let { adapter ->
             (0 until adapter.count).map { adapter.getItem(it).toString() }
         }
         if (existing == values) return
-        tagSpinner.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, values)
+        binding.screenLogTag.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, values)
         val index = values.indexOf(current).takeIf { it >= 0 } ?: 0
-        tagSpinner.setSelection(index)
+        binding.screenLogTag.setSelection(index)
     }
 
     private fun toggleHeight() {

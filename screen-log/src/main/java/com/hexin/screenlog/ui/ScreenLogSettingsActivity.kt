@@ -2,20 +2,21 @@ package com.hexin.screenlog.ui
 
 import android.app.Activity
 import android.os.Bundle
-import android.widget.Button
-import android.widget.TextView
-import com.hexin.screenlog.R
 import com.hexin.screenlog.api.ScreenLogManager
+import com.hexin.screenlog.databinding.ScreenLogSettingsActivityBinding
 
 class ScreenLogSettingsActivity : Activity() {
 
+    private lateinit var binding: ScreenLogSettingsActivityBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.screen_log_settings_activity)
-        findViewById<TextView>(R.id.screenLogSettingsSummary).text = ScreenLogManager.settingsSummary()
-        findViewById<Button>(R.id.screenLogClearAll).setOnClickListener {
+        binding = ScreenLogSettingsActivityBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        binding.screenLogSettingsSummary.text = ScreenLogManager.settingsSummary()
+        binding.screenLogClearAll.setOnClickListener {
             ScreenLogManager.clearLogs()
-            findViewById<TextView>(R.id.screenLogSettingsSummary).text = ScreenLogManager.settingsSummary()
+            binding.screenLogSettingsSummary.text = ScreenLogManager.settingsSummary()
         }
     }
 }

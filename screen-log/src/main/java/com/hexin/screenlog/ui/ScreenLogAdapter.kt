@@ -3,13 +3,13 @@ package com.hexin.screenlog.ui
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.hexin.screenlog.R
 import com.hexin.screenlog.api.ScreenLogLevel
 import com.hexin.screenlog.core.ScreenLogEntry
 import com.hexin.screenlog.core.ScreenLogFormatter
+import com.hexin.screenlog.databinding.ScreenLogItemBinding
 
 class ScreenLogAdapter(
     private val onCopy: (ScreenLogEntry) -> Unit
@@ -24,8 +24,8 @@ class ScreenLogAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.screen_log_item, parent, false)
-        return Holder(view)
+        val binding = ScreenLogItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return Holder(binding)
     }
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
@@ -34,15 +34,12 @@ class ScreenLogAdapter(
 
     override fun getItemCount(): Int = items.size
 
-    inner class Holder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val time: TextView = itemView.findViewById(R.id.screenLogTime)
-        private val level: TextView = itemView.findViewById(R.id.screenLogLevelText)
-        private val tag: TextView = itemView.findViewById(R.id.screenLogTagText)
-        private val message: TextView = itemView.findViewById(R.id.screenLogMessage)
-        private val extras: TextView = itemView.findViewById(R.id.screenLogExtras)
+    inner class Holder(
+        private val binding: ScreenLogItemBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
 
         init {
-            itemView.setOnLongClickListener {
+            binding.root.setOnLongClickListener {
                 val position = bindingAdapterPosition
                 if (position != RecyclerView.NO_POSITION) onCopy(items[position])
                 true
@@ -50,14 +47,14 @@ class ScreenLogAdapter(
         }
 
         fun bind(entry: ScreenLogEntry) {
-            time.text = ScreenLogFormatter.formatTime(entry.timeMillis)
-            level.text = entry.level.name.take(1)
-            level.setTextColor(ContextCompat.getColor(itemView.context, colorFor(entry.level)))
-            tag.text = entry.tag
-            message.text = entry.message
+            binding.screenLogTime.text = ScreenLogFormatter.formatTime(entry.timeMillis)
+            binding.screenLogLevelText.text = entry.level.name.take(1)
+            binding.screenLogLevelText.setTextColor(ContextCompat.getColor(itemView.context, colorFor(entry.level)))
+            binding.screenLogTagText.text = entry.tag
+            binding.screenLogMessage.text = entry.message
             val extrasText = entry.extras.orEmpty().entries.joinToString { "${it.key}=${it.value}" }
-            extras.text = extrasText
-            extras.visibility = if (extrasText.isBlank()) View.GONE else View.VISIBLE
+            binding.screenLogExtras.text = extrasText
+            binding.screenLogExtras.visibility = if (extrasText.isBlank()) View.GONE else View.VISIBLE
         }
     }
 
