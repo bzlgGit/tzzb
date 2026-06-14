@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -14,6 +15,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.hexin.screenlog.R
 import com.hexin.screenlog.api.ScreenLogLevel
 import com.hexin.screenlog.api.ScreenLogManager
@@ -26,6 +28,10 @@ import com.hexin.screenlog.filter.ScreenLogFilterMatcher
 
 class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDispatcher.Listener {
 
+    private companion object {
+        const val TAG = "ScreenLogPanelView"
+    }
+
     private val adapter = ScreenLogAdapter(::copyEntry)
     private val binding = ScreenLogPanelViewBinding.inflate(LayoutInflater.from(context), this, true)
     private var filter = ScreenLogFilter()
@@ -35,7 +41,10 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
     private var touchMode = ScreenLogManager.getTouchMode()
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+        override fun onDown(e: MotionEvent): Boolean = true
+
         override fun onDoubleTap(e: MotionEvent): Boolean {
+            Log.d(TAG, "onDoubleTap x=${e.x}, y=${e.y}, largeBefore=$large, touchMode=$touchMode")
             toggleHeight()
             return true
         }
@@ -45,32 +54,74 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
         layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, panelHeight(false), Gravity.BOTTOM)
         binding.screenLogList.layoutManager = LinearLayoutManager(context)
         binding.screenLogList.adapter = adapter
+        trace("init, defaultHeight=${panelHeight(false)}, root=${binding.root.javaClass.simpleName}")
+        binding.root.setOnTouchListener { _, event ->
+            if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_UP) {
+                trace("binding.root touch, action=${event.actionName()}, x=${event.x}, y=${event.y}")
+            }
+            false
+        }
+        binding.screenLogList.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+            override fun onInterceptTouchEvent(rv: RecyclerView, event: MotionEvent): Boolean {
+                if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_UP) {
+                    trace("screenLogList touch, action=${event.actionName()}, x=${event.x}, y=${event.y}")
+                }
+                return false
+            }
+        })
         setupFilters()
         setupActions()
-        setOnTouchListener { _, event -> gestureDetector.onTouchEvent(event) }
         refreshNow()
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         return if (touchMode == ScreenLogTouchMode.UNDERLYING_PAGE) {
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                trace("dispatchTouchEvent pass through, action=${event.actionName()}, x=${event.x}, y=${event.y}")
+            }
             false
         } else {
-            super.dispatchTouchEvent(event)
+            if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_UP) {
+                trace("dispatchTouchEvent handle, action=${event.actionName()}, x=${event.x}, y=${event.y}")
+            }
+            val handledByGesture = gestureDetector.onTouchEvent(event)
+            val handledByChildren = super.dispatchTouchEvent(event)
+            if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_UP) {
+                trace("dispatchTouchEvent result, action=${event.actionName()}, gesture=$handledByGesture, children=$handledByChildren")
+            }
+            handledByChildren || handledByGesture
         }
     }
 
+    override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_UP) {
+            trace("onInterceptTouchEvent action=${event.actionName()}, x=${event.x}, y=${event.y}")
+        }
+        return super.onInterceptTouchEvent(event)
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_UP) {
+            trace("onTouchEvent action=${event.actionName()}, x=${event.x}, y=${event.y}")
+        }
+        return super.onTouchEvent(event)
+    }
+
     fun setTouchMode(mode: ScreenLogTouchMode) {
+        trace("setTouchMode from=$touchMode to=$mode")
         touchMode = mode
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        trace("onAttachedToWindow width=$width, height=$height, layoutHeight=${layoutParams?.height}, parent=${parent?.javaClass?.simpleName}")
         ScreenLogDispatcher.addListener(this)
         onAutoScrollChanged(ScreenLogDispatcher.isAutoScrollPaused())
         refreshNow()
     }
 
     override fun onDetachedFromWindow() {
+        trace("onDetachedFromWindow")
         ScreenLogDispatcher.removeListener(this)
         super.onDetachedFromWindow()
     }
@@ -151,13 +202,31 @@ class ScreenLogPanelView(context: Context) : FrameLayout(context), ScreenLogDisp
     }
 
     private fun toggleHeight() {
+        val oldHeight = layoutParams?.height ?: 0
         large = !large
-        layoutParams = layoutParams.apply { height = panelHeight(large) }
+        val newHeight = panelHeight(large)
+        trace("toggleHeight large=$large, oldHeight=$oldHeight, newHeight=$newHeight, parent=${parent?.javaClass?.simpleName}")
+        layoutParams = layoutParams.apply { height = newHeight }
+        requestLayout()
     }
 
     private fun panelHeight(large: Boolean): Int {
         val screenHeight = resources.displayMetrics.heightPixels
-        return screenHeight * if (large) 2 / 3 else 1 / 3
+        return if (large) screenHeight * 2 / 3 else screenHeight / 3
+    }
+
+    private fun MotionEvent.actionName(): String {
+        return when (actionMasked) {
+            MotionEvent.ACTION_DOWN -> "DOWN"
+            MotionEvent.ACTION_UP -> "UP"
+            MotionEvent.ACTION_MOVE -> "MOVE"
+            MotionEvent.ACTION_CANCEL -> "CANCEL"
+            else -> actionMasked.toString()
+        }
+    }
+
+    private fun trace(message: String) {
+        Log.i(TAG, message)
     }
 
     private fun copyEntry(entry: com.hexin.screenlog.core.ScreenLogEntry) {

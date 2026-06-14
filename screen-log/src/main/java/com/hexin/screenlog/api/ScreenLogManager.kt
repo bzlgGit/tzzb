@@ -5,6 +5,7 @@ import android.app.Application
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.FrameLayout
 import android.view.ViewGroup
 import com.hexin.screenlog.core.ScreenLogDispatcher
@@ -18,6 +19,8 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
 object ScreenLogManager {
+
+    private const val TAG = "ScreenLogManager"
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val initialized = AtomicBoolean(false)
@@ -65,6 +68,7 @@ object ScreenLogManager {
     }
 
     fun showPanel() {
+        Log.i(TAG, "showPanel currentActivity=${currentActivity?.javaClass?.simpleName}, touchMode=$touchMode")
         panelVisible = true
         runOnMain { attachPanel() }
     }
@@ -94,6 +98,7 @@ object ScreenLogManager {
     fun getTouchMode(): ScreenLogTouchMode = touchMode
 
     fun setTouchMode(mode: ScreenLogTouchMode) {
+        Log.i(TAG, "setTouchMode from=$touchMode to=$mode")
         touchMode = mode
         runOnMain {
             panelView?.setTouchMode(mode)
@@ -214,17 +219,20 @@ object ScreenLogManager {
         if (panelView?.parent === container) return
         panelView?.let { removeFromParent(it) }
         panelView = ScreenLogPanelView(activity).also { view ->
+            val panelHeight = activity.resources.displayMetrics.heightPixels / 3
+            Log.i(TAG, "attachPanel container=${container.javaClass.simpleName}, childCount=${container.childCount}, height=$panelHeight, touchMode=$touchMode")
             container.addView(
                 view,
                 FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
-                    activity.resources.displayMetrics.heightPixels / 3,
+                    panelHeight,
                     android.view.Gravity.BOTTOM
                 )
             )
             view.bringToFront()
             view.translationZ = activity.dp(32).toFloat()
             view.setTouchMode(touchMode)
+            Log.i(TAG, "attachPanel added parent=${view.parent?.javaClass?.simpleName}, width=${view.width}, height=${view.height}, layoutHeight=${view.layoutParams?.height}, translationZ=${view.translationZ}")
             floatingView?.bringToFront()
             floatingView?.setPanelVisible(true)
         }
