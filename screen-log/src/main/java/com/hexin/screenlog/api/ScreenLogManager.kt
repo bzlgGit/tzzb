@@ -37,7 +37,12 @@ object ScreenLogManager {
 
     fun init(config: ScreenLogConfig) {
         this.config = config
-        if (!config.enable) return
+        if (!config.enable) {
+            ScreenLogDispatcher.setRecordingEnabled(false)
+            runOnMain { disableUi() }
+            return
+        }
+        ScreenLogDispatcher.setRecordingEnabled(true)
         val logDir = logDir(config)
         ScreenLogCleaner(logDir).clean(config.keepDays)
         ScreenLogDispatcher.configure(config.maxMemoryEntries)
@@ -49,12 +54,17 @@ object ScreenLogManager {
     }
 
     fun showFloatingEntry() {
+        if (!isEnabled()) return
         floatingVisible = true
-        runOnMain { currentActivity()?.let { attachFloating(it) } }
+        runOnMain {
+            if (isEnabled()) currentActivity()?.let { attachFloating(it) }
+        }
     }
 
     fun attachTo(activity: Activity) {
+        if (!isEnabled()) return
         runOnMain {
+            if (!isEnabled()) return@runOnMain
             currentActivityRef = WeakReference(activity)
             if (floatingVisible) attachFloating(activity)
             if (panelVisible) attachPanel(activity)
@@ -72,9 +82,12 @@ object ScreenLogManager {
     }
 
     fun showPanel() {
+        if (!isEnabled()) return
         Log.i(TAG, "showPanel currentActivity=${currentActivity()?.javaClass?.simpleName}, touchMode=$touchMode")
         panelVisible = true
-        runOnMain { currentActivity()?.let { attachPanel(it) } }
+        runOnMain {
+            if (isEnabled()) currentActivity()?.let { attachPanel(it) }
+        }
     }
 
     fun hidePanel() {
@@ -97,6 +110,19 @@ object ScreenLogManager {
 
     fun resumeAutoScroll() {
         ScreenLogDispatcher.setAutoScrollPaused(false)
+    }
+
+    fun isRecordingEnabled(): Boolean {
+        return isEnabled() && ScreenLogDispatcher.isRecordingEnabled()
+    }
+
+    fun setRecordingEnabled(enabled: Boolean) {
+        if (!isEnabled()) return
+        ScreenLogDispatcher.setRecordingEnabled(enabled)
+    }
+
+    fun toggleRecording() {
+        setRecordingEnabled(!isRecordingEnabled())
     }
 
     fun getTouchMode(): ScreenLogTouchMode = touchMode
@@ -125,6 +151,7 @@ object ScreenLogManager {
     }
 
     internal fun openSettings() {
+        if (!isEnabled()) return
         val activity = currentActivity() ?: return
         activity.startActivity(android.content.Intent(activity, com.hexin.screenlog.ui.ScreenLogSettingsActivity::class.java))
     }
@@ -138,6 +165,7 @@ object ScreenLogManager {
     ) {
         val cfg = config ?: return
         if (!cfg.enable || level.ordinal < cfg.minLevel.ordinal) return
+        if (!ScreenLogDispatcher.isRecordingEnabled()) return
         val fullMessage = if (throwable == null) message else "$message\n${throwable.stackTraceToString()}"
         val entry = ScreenLogEntry(
             timeMillis = System.currentTimeMillis(),
@@ -161,6 +189,7 @@ object ScreenLogManager {
             appendLine("Keep days: ${cfg.keepDays}")
             appendLine("Max file: ${cfg.maxFileSizeMb}MB")
             appendLine("Min level: ${cfg.minLevel}")
+            appendLine("Recording: ${if (isRecordingEnabled()) "enabled" else "stopped"}")
             appendLine("Touch target: ${if (touchMode == ScreenLogTouchMode.LOG_PANEL) "log panel" else "underlying page"}")
             appendLine("Memory entries: ${ScreenLogDispatcher.snapshot().size}")
             appendLine()
@@ -170,6 +199,7 @@ object ScreenLogManager {
 
     private val activityCallbacks = object : Application.ActivityLifecycleCallbacks {
         override fun onActivityResumed(activity: Activity) {
+            if (!isEnabled()) return
             currentActivityRef = WeakReference(activity)
             if (floatingVisible) attachFloating(activity)
             if (panelVisible) attachPanel(activity)
@@ -253,6 +283,16 @@ object ScreenLogManager {
         (view.parent as? ViewGroup)?.removeView(view)
     }
 
+    private fun disableUi() {
+        floatingVisible = false
+        panelVisible = false
+        floatingView?.let { removeFromParent(it) }
+        panelView?.let { removeFromParent(it) }
+        floatingView = null
+        panelView = null
+        currentActivityRef = null
+    }
+
     private fun runOnMain(block: () -> Unit) {
         if (Looper.myLooper() == Looper.getMainLooper()) block() else mainHandler.post(block)
     }
@@ -273,6 +313,8 @@ object ScreenLogManager {
         val activity = currentActivityRef?.get() ?: return null
         return activity.takeIf { it.isUsable() }
     }
+
+    private fun isEnabled(): Boolean = config?.enable == true
 
     private fun Activity.isUsable(): Boolean {
         return !isFinishing && !isDestroyed

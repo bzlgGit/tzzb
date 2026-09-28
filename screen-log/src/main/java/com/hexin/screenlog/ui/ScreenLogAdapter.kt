@@ -4,6 +4,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.hexin.screenlog.R
 import com.hexin.screenlog.api.ScreenLogLevel
@@ -13,15 +15,7 @@ import com.hexin.screenlog.databinding.ScreenLogItemBinding
 
 class ScreenLogAdapter(
     private val onCopy: (ScreenLogEntry) -> Unit
-) : RecyclerView.Adapter<ScreenLogAdapter.Holder>() {
-
-    private val items = ArrayList<ScreenLogEntry>()
-
-    fun submitList(newItems: List<ScreenLogEntry>) {
-        items.clear()
-        items.addAll(newItems)
-        notifyDataSetChanged()
-    }
+) : ListAdapter<ScreenLogEntry, ScreenLogAdapter.Holder>(DiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
         val binding = ScreenLogItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -29,10 +23,8 @@ class ScreenLogAdapter(
     }
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
-        holder.bind(items[position])
+        holder.bind(getItem(position))
     }
-
-    override fun getItemCount(): Int = items.size
 
     inner class Holder(
         private val binding: ScreenLogItemBinding
@@ -41,7 +33,7 @@ class ScreenLogAdapter(
         init {
             binding.root.setOnLongClickListener {
                 val position = bindingAdapterPosition
-                if (position != RecyclerView.NO_POSITION) onCopy(items[position])
+                if (position != RecyclerView.NO_POSITION) onCopy(getItem(position))
                 true
             }
         }
@@ -64,6 +56,16 @@ class ScreenLogAdapter(
             ScreenLogLevel.WARN -> R.color.screen_log_warn
             ScreenLogLevel.INFO -> R.color.screen_log_info
             else -> R.color.screen_log_accent
+        }
+    }
+
+    private object DiffCallback : DiffUtil.ItemCallback<ScreenLogEntry>() {
+        override fun areItemsTheSame(oldItem: ScreenLogEntry, newItem: ScreenLogEntry): Boolean {
+            return oldItem === newItem
+        }
+
+        override fun areContentsTheSame(oldItem: ScreenLogEntry, newItem: ScreenLogEntry): Boolean {
+            return oldItem == newItem
         }
     }
 }

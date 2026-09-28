@@ -30,18 +30,30 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/screenLogSettingsTitle" />
 
+    <TextView
+        android:id="@+id/screenLogTouchTargetLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:text="@string/screen_log_touch_target"
+        android:textColor="@color/screen_log_text_secondary"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/screenLogSettingsSummary" />
+
     <Button
         android:id="@+id/screenLogTouchLogPanel"
         android:layout_width="0dp"
         android:layout_height="44dp"
-        android:layout_marginTop="18dp"
+        android:layout_marginTop="8dp"
         android:background="@drawable/screen_log_button_bg"
         android:text="@string/screen_log_touch_log_panel"
         android:textAllCaps="false"
         android:textColor="@color/screen_log_accent"
         app:layout_constraintEnd_toStartOf="@id/screenLogTouchUnderlyingPage"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/screenLogSettingsSummary" />
+        app:layout_constraintTop_toBottomOf="@id/screenLogTouchTargetLabel" />
 
     <Button
         android:id="@+id/screenLogTouchUnderlyingPage"

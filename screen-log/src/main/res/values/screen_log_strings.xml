@@ -10,7 +10,10 @@
     <string name="screen_log_pause">Pause</string>
     <string name="screen_log_resume">Resume</string>
     <string name="screen_log_settings">Settings</string>
+    <string name="screen_log_panel_visible">显示日志面板</string>
+    <string name="screen_log_recording">记录日志</string>
+    <string name="screen_log_auto_scroll">自动滚动</string>
     <string name="screen_log_touch_target">触摸目标</string>
-    <string name="screen_log_touch_log_panel">操作日志面板</string>
-    <string name="screen_log_touch_underlying_page">操作下层页面</string>
+    <string name="screen_log_touch_log_panel">日志面板</string>
+    <string name="screen_log_touch_underlying_page">下层页面</string>
 </resources>

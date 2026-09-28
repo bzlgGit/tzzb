@@ -43,6 +43,7 @@ internal class ScreenLogPanelView(
     private var refreshPosted = false
     private var touchMode = ScreenLogManager.getTouchMode()
     private var suppressFilterCallbacks = false
+    private var suppressStateCallbacks = false
     private var restoreScrollPending = state.listPosition >= 0
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
@@ -132,6 +133,7 @@ internal class ScreenLogPanelView(
         trace("onAttachedToWindow width=$width, height=$height, layoutHeight=${layoutParams?.height}, parent=${parent?.javaClass?.simpleName}")
         ScreenLogDispatcher.addListener(this)
         onAutoScrollChanged(ScreenLogDispatcher.isAutoScrollPaused())
+        onRecordingChanged(ScreenLogManager.isRecordingEnabled())
         refreshNow()
     }
 
@@ -152,7 +154,15 @@ internal class ScreenLogPanelView(
     }
 
     override fun onAutoScrollChanged(paused: Boolean) {
-        binding.screenLogPause.text = context.getString(if (paused) R.string.screen_log_resume else R.string.screen_log_pause)
+        suppressStateCallbacks = true
+        binding.screenLogAutoScroll.isChecked = !paused
+        suppressStateCallbacks = false
+    }
+
+    override fun onRecordingChanged(enabled: Boolean) {
+        suppressStateCallbacks = true
+        binding.screenLogRecording.isChecked = enabled
+        suppressStateCallbacks = false
     }
 
     private fun setupFilters() {
@@ -192,8 +202,12 @@ internal class ScreenLogPanelView(
     }
 
     private fun setupActions() {
-        binding.screenLogPause.setOnClickListener {
-            if (ScreenLogDispatcher.isAutoScrollPaused()) ScreenLogManager.resumeAutoScroll() else ScreenLogManager.pauseAutoScroll()
+        binding.screenLogRecording.setOnCheckedChangeListener { _, checked ->
+            if (!suppressStateCallbacks) ScreenLogManager.setRecordingEnabled(checked)
+        }
+        binding.screenLogAutoScroll.setOnCheckedChangeListener { _, checked ->
+            if (suppressStateCallbacks) return@setOnCheckedChangeListener
+            if (checked) ScreenLogManager.resumeAutoScroll() else ScreenLogManager.pauseAutoScroll()
         }
         binding.screenLogClear.setOnClickListener { ScreenLogManager.clearLogs() }
         binding.screenLogCopyFiltered.setOnClickListener {
@@ -205,11 +219,12 @@ internal class ScreenLogPanelView(
         val entries = ScreenLogDispatcher.snapshot()
         updateTags(entries.map { it.tag }.distinct().sorted())
         filteredEntries = entries.filter { ScreenLogFilterMatcher.match(it, filter) }
-        adapter.submitList(filteredEntries)
-        if (restoreScrollPending) {
-            restoreListPosition()
-        } else if (!ScreenLogDispatcher.isAutoScrollPaused() && filteredEntries.isNotEmpty()) {
-            binding.screenLogList.scrollToPosition(filteredEntries.lastIndex)
+        adapter.submitList(filteredEntries) {
+            if (restoreScrollPending) {
+                restoreListPosition()
+            } else if (!ScreenLogDispatcher.isAutoScrollPaused() && filteredEntries.isNotEmpty()) {
+                binding.screenLogList.scrollToPosition(filteredEntries.lastIndex)
+            }
         }
     }
 

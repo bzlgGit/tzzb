@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="screen_log_bg">#F8FAFC</color>
-    <color name="screen_log_panel_bg">#FDFEFE</color>
+    <color name="screen_log_panel_bg">#BFFDFEFE</color>
     <color name="screen_log_text_primary">#111827</color>
     <color name="screen_log_text_secondary">#5B6472</color>
     <color name="screen_log_line">#DCE2EA</color>

@@ -38,7 +38,7 @@ internal class ScreenLogFloatingView(
         addView(entryButton, LayoutParams(context.dp(52), context.dp(40)))
 
         menuView.visibility = View.GONE
-        addView(menuView, LayoutParams(context.dp(142), LayoutParams.WRAP_CONTENT).apply {
+        addView(menuView, LayoutParams(context.dp(190), LayoutParams.WRAP_CONTENT).apply {
             topMargin = context.dp(46)
         })
 
@@ -103,7 +103,7 @@ internal class ScreenLogFloatingView(
 
     private fun resizeForMenu() {
         val params = layoutParams
-        params.width = if (menuView.visibility == View.VISIBLE) context.dp(142) else context.dp(52)
+        params.width = if (menuView.visibility == View.VISIBLE) context.dp(190) else context.dp(52)
         params.height = LayoutParams.WRAP_CONTENT
         layoutParams = params
     }

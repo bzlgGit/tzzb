@@ -90,24 +90,45 @@
         android:layout_height="36dp"
         android:layout_marginStart="8dp"
         android:background="@drawable/screen_log_field_bg"
-        app:layout_constraintEnd_toStartOf="@id/screenLogPause"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/screenLogLevel"
         app:layout_constraintTop_toTopOf="@id/screenLogLevel" />
 
-    <Button
-        android:id="@+id/screenLogPause"
-        android:layout_width="78dp"
-        android:layout_height="36dp"
-        android:layout_marginStart="8dp"
-        android:background="@drawable/screen_log_button_bg"
+    <Switch
+        android:id="@+id/screenLogRecording"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:checked="true"
+        android:gravity="center_vertical"
         android:minWidth="0dp"
         android:minHeight="0dp"
-        android:text="@string/screen_log_pause"
-        android:textAllCaps="false"
-        android:textColor="@color/screen_log_accent"
+        android:switchMinWidth="40dp"
+        android:switchPadding="8dp"
+        android:text="@string/screen_log_recording"
+        android:textColor="@color/screen_log_text_primary"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toStartOf="@id/screenLogAutoScroll"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/screenLogLevel" />
+
+    <Switch
+        android:id="@+id/screenLogAutoScroll"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="8dp"
+        android:checked="true"
+        android:gravity="center_vertical"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:switchMinWidth="40dp"
+        android:switchPadding="8dp"
+        android:text="@string/screen_log_auto_scroll"
+        android:textColor="@color/screen_log_text_primary"
         android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/screenLogLevel" />
+        app:layout_constraintStart_toEndOf="@id/screenLogRecording"
+        app:layout_constraintTop_toTopOf="@id/screenLogRecording" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/screenLogList"
@@ -119,5 +140,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/screenLogLevel" />
+        app:layout_constraintTop_toBottomOf="@id/screenLogRecording" />
 </androidx.constraintlayout.widget.ConstraintLayout>

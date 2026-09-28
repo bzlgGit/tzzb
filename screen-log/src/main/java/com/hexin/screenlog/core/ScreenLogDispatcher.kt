@@ -9,6 +9,7 @@ object ScreenLogDispatcher {
     interface Listener {
         fun onLogsChanged()
         fun onAutoScrollChanged(paused: Boolean)
+        fun onRecordingChanged(enabled: Boolean)
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -17,6 +18,8 @@ object ScreenLogDispatcher {
     private var maxMemoryEntries = 2000
     @Volatile
     private var autoScrollPaused = false
+    @Volatile
+    private var recordingEnabled = true
 
     fun configure(maxMemoryEntries: Int) {
         this.maxMemoryEntries = maxMemoryEntries.coerceAtLeast(200)
@@ -65,6 +68,16 @@ object ScreenLogDispatcher {
         autoScrollPaused = paused
         mainHandler.post {
             listeners.forEach { it.onAutoScrollChanged(paused) }
+        }
+    }
+
+    fun isRecordingEnabled(): Boolean = recordingEnabled
+
+    fun setRecordingEnabled(enabled: Boolean) {
+        if (recordingEnabled == enabled) return
+        recordingEnabled = enabled
+        mainHandler.post {
+            listeners.forEach { it.onRecordingChanged(enabled) }
         }
     }
 
