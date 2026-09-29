@@ -4,6 +4,10 @@ import com.hexin.screenlog.core.ScreenLogEntry
 
 object ScreenLogFilterMatcher {
 
+    fun filter(entries: List<ScreenLogEntry>, filter: ScreenLogFilter): List<ScreenLogEntry> {
+        return entries.filter { match(it, filter) }
+    }
+
     fun match(entry: ScreenLogEntry, filter: ScreenLogFilter): Boolean {
         if (filter.level != null && entry.level != filter.level) return false
         if (!filter.tag.isNullOrBlank() && entry.tag != filter.tag) return false

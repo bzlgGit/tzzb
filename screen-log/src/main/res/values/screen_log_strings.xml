@@ -6,6 +6,11 @@
     <string name="screen_log_level_all">ALL</string>
     <string name="screen_log_tag_all">All tags</string>
     <string name="screen_log_copy_filtered">Copy filtered</string>
+    <string name="screen_log_nothing_to_copy">No matching logs to copy</string>
+    <plurals name="screen_log_copied_count">
+        <item quantity="one">Copied %d log</item>
+        <item quantity="other">Copied %d logs</item>
+    </plurals>
     <string name="screen_log_clear">Clear</string>
     <string name="screen_log_pause">Pause</string>
     <string name="screen_log_resume">Resume</string>

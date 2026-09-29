@@ -14,6 +14,7 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.hexin.screenlog.R
@@ -210,15 +211,13 @@ internal class ScreenLogPanelView(
             if (checked) ScreenLogManager.resumeAutoScroll() else ScreenLogManager.pauseAutoScroll()
         }
         binding.screenLogClear.setOnClickListener { ScreenLogManager.clearLogs() }
-        binding.screenLogCopyFiltered.setOnClickListener {
-            copyText(filteredEntries.joinToString(separator = "\n") { ScreenLogFormatter.display(it) })
-        }
+        binding.screenLogCopyFiltered.setOnClickListener { copyFilteredEntries() }
     }
 
     private fun refreshNow() {
         val entries = ScreenLogDispatcher.snapshot()
         updateTags(entries.map { it.tag }.distinct().sorted())
-        filteredEntries = entries.filter { ScreenLogFilterMatcher.match(it, filter) }
+        filteredEntries = ScreenLogFilterMatcher.filter(entries, filter)
         adapter.submitList(filteredEntries) {
             if (restoreScrollPending) {
                 restoreListPosition()
@@ -311,11 +310,28 @@ internal class ScreenLogPanelView(
     }
 
     private fun copyEntry(entry: com.hexin.screenlog.core.ScreenLogEntry) {
-        copyText(ScreenLogFormatter.display(entry))
+        copyText(ScreenLogFormatter.display(entry), copiedCount = 1)
     }
 
-    private fun copyText(text: String) {
+    private fun copyFilteredEntries() {
+        // 复制时重新读取快照，避免关键字输入的延迟刷新导致复制到旧筛选结果。
+        val entries = ScreenLogFilterMatcher.filter(ScreenLogDispatcher.snapshot(), filter)
+        if (entries.isEmpty()) {
+            Toast.makeText(context, R.string.screen_log_nothing_to_copy, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val text = entries.joinToString(separator = "\n") { ScreenLogFormatter.display(it) }
+        copyText(text, copiedCount = entries.size)
+    }
+
+    private fun copyText(text: String, copiedCount: Int) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("screen-log", text))
+        val message = resources.getQuantityString(
+            R.plurals.screen_log_copied_count,
+            copiedCount,
+            copiedCount
+        )
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 }
