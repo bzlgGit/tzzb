@@ -9,5 +9,6 @@ data class ScreenLogConfig(
     val keepDays: Int = 3,
     val maxFileSizeMb: Int = 10,
     val minLevel: ScreenLogLevel = ScreenLogLevel.DEBUG,
-    val maxMemoryEntries: Int = 2000
+    val maxMemoryEntries: Int = 2000,
+    val copyOptions: ScreenLogCopyOptions = ScreenLogCopyOptions()
 )

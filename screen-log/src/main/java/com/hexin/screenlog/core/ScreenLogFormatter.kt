@@ -1,5 +1,6 @@
 package com.hexin.screenlog.core
 
+import com.hexin.screenlog.api.ScreenLogCopyOptions
 import com.hexin.screenlog.api.ScreenLogLevel
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -23,6 +24,23 @@ object ScreenLogFormatter {
             append("] ")
             append(entry.message)
             if (!entry.extras.isNullOrEmpty()) {
+                append(" extras=")
+                append(entry.extras)
+            }
+        }
+    }
+
+    fun formatForCopy(entry: ScreenLogEntry, options: ScreenLogCopyOptions): String {
+        return buildString {
+            if (options.includeTime) appendField(formatTime(entry.timeMillis))
+            if (options.includeLevel) appendField(entry.level.name)
+            if (options.includeTag) appendField(entry.tag)
+            if (options.includeThreadName && !entry.threadName.isNullOrBlank()) {
+                appendField(entry.threadName)
+            }
+            if (isNotEmpty()) append(' ')
+            append(entry.message)
+            if (options.includeExtras && !entry.extras.isNullOrEmpty()) {
                 append(" extras=")
                 append(entry.extras)
             }
@@ -61,5 +79,9 @@ object ScreenLogFormatter {
                 extras = extras
             )
         }.getOrNull()
+    }
+
+    private fun StringBuilder.appendField(value: String) {
+        append('[').append(value).append(']')
     }
 }

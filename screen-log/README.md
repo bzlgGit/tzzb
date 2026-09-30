@@ -59,7 +59,12 @@ class App : Application() {
                 keepDays = 3,
                 maxFileSizeMb = 10,
                 minLevel = ScreenLogLevel.DEBUG,
-                maxMemoryEntries = 2000
+                maxMemoryEntries = 2000,
+                copyOptions = ScreenLogCopyOptions(
+                    includeTime = true,
+                    includeLevel = true,
+                    includeTag = true
+                )
             )
         )
     }
@@ -124,21 +129,23 @@ ScreenLog.e(
 | `maxFileSizeMb` | `10` | 单日文件上限，达到后当天新日志停止落盘 |
 | `minLevel` | `DEBUG` | 低于该等级的日志直接忽略 |
 | `maxMemoryEntries` | `2000` | 内存最多保留条数，内部最低按 200 条处理 |
+| `copyOptions` | 仅复制 message | 首次运行时的复制字段默认值；用户在设置页修改后以已保存偏好为准 |
 
 ## 界面操作
 
-- 点击 `Log` 悬浮入口展开菜单。
+- 点击“日志”悬浮入口展开菜单。
 - `显示日志面板` Switch：显示或隐藏日志面板。
 - `记录日志` Switch：控制是否接收新日志，关闭后已有日志保持不变。
 - `自动滚动` Switch：控制列表是否跟随最新日志。
 - 面板默认占屏幕高度 `1/3`，双击面板切换到 `2/3`，再次双击恢复。
 - 支持关键字、日志等级和 Tag 筛选。
-- 长按单条日志复制；`Copy filtered` 复制当前筛选结果。
+- 长按日志进入多选，点击其他日志增减选择，可全选当前筛选结果后统一复制。
+- 顶部复制图标可一键复制当前筛选结果；复制字段由 `ScreenLogCopyOptions` 控制，默认仅复制 message。
 - 关闭“自动滚动”只停止列表跟随，不影响日志记录。
 - 悬浮入口支持拖动并自动吸附左右边缘。
-- `Settings` 可查看配置摘要、切换触摸模式、清空日志。
+- `设置` 按“运行控制、交互设置、复制内容、存储与信息”分类，可修改记录、自动滚动、触摸目标和复制字段，并清空日志。
 
-切换 Activity 时，组件会重新挂载 View，并在进程内恢复面板高度、筛选条件、列表位置和悬浮入口位置。应用进程重启后这些 UI 状态会恢复默认值。
+切换 Activity 时，组件会重新挂载 View。记录开关、自动滚动、触摸目标、复制字段、面板高度和悬浮入口位置会保存到模块私有 `SharedPreferences`；筛选条件、列表位置、多选状态和面板是否显示仅在当前进程或会话中保留。应用重新启动后面板默认不显示，但只要“记录日志”保持开启，启动日志仍会进入内存和文件，之后打开面板即可查看。
 
 ## 触摸模式
 
@@ -216,7 +223,7 @@ ScreenLogManager.attachTo(this)
 
 ### 为什么切换 Activity 后看起来没有消失
 
-旧 Activity 暂停时会移除 View；新 Activity 恢复时重新挂载。模块只在内存中保存纯数据 UI 状态，不强持有旧 Activity，也不会跨进程保存这些状态。
+旧 Activity 暂停时会移除 View；新 Activity 恢复时重新挂载。模块不强持有旧 Activity。用户偏好由模块私有 `SharedPreferences` 恢复，筛选条件、列表位置和多选状态等临时上下文仍只在进程内保存。
 
 ## 当前边界
 

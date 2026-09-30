@@ -1,5 +1,6 @@
 package com.hexin.screenlog.ui
 
+import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -9,6 +10,7 @@ import android.util.Log
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.widget.AdapterView
@@ -36,7 +38,7 @@ internal class ScreenLogPanelView(
         const val TAG = "ScreenLogPanelView"
     }
 
-    private val adapter = ScreenLogAdapter(::copyEntry)
+    private val adapter = ScreenLogAdapter(::onEntryClick, ::onEntryLongClick)
     private val binding = ScreenLogPanelViewBinding.inflate(LayoutInflater.from(context), this, true)
     private var filter = state.filter
     private var filteredEntries = emptyList<com.hexin.screenlog.core.ScreenLogEntry>()
@@ -46,6 +48,8 @@ internal class ScreenLogPanelView(
     private var suppressFilterCallbacks = false
     private var suppressStateCallbacks = false
     private var restoreScrollPending = state.listPosition >= 0
+    private var selectionMode = false
+    private var autoScrollWasPaused = false
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent): Boolean = true
@@ -58,6 +62,15 @@ internal class ScreenLogPanelView(
     })
 
     init {
+        isFocusableInTouchMode = true
+        setOnKeyListener { _, keyCode, event ->
+            if (selectionMode && keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
+                exitSelectionMode()
+                true
+            } else {
+                false
+            }
+        }
         layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, panelHeight(large), Gravity.BOTTOM)
         binding.screenLogList.layoutManager = LinearLayoutManager(context)
         binding.screenLogList.adapter = adapter
@@ -139,6 +152,7 @@ internal class ScreenLogPanelView(
     }
 
     override fun onDetachedFromWindow() {
+        exitSelectionMode()
         saveListPosition()
         trace("onDetachedFromWindow")
         ScreenLogDispatcher.removeListener(this)
@@ -168,7 +182,7 @@ internal class ScreenLogPanelView(
 
     private fun setupFilters() {
         val levels = listOf(context.getString(R.string.screen_log_level_all)) + ScreenLogLevel.values().map { it.name }
-        binding.screenLogLevel.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, levels)
+        binding.screenLogLevel.adapter = spinnerAdapter(levels)
         binding.screenLogLevel.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (suppressFilterCallbacks) return
@@ -210,8 +224,12 @@ internal class ScreenLogPanelView(
             if (suppressStateCallbacks) return@setOnCheckedChangeListener
             if (checked) ScreenLogManager.resumeAutoScroll() else ScreenLogManager.pauseAutoScroll()
         }
-        binding.screenLogClear.setOnClickListener { ScreenLogManager.clearLogs() }
+        binding.screenLogClear.setOnClickListener { confirmClearLogs() }
         binding.screenLogCopyFiltered.setOnClickListener { copyFilteredEntries() }
+        binding.screenLogSettings.setOnClickListener { ScreenLogManager.openSettings() }
+        binding.screenLogSelectionClose.setOnClickListener { exitSelectionMode() }
+        binding.screenLogSelectionAll.setOnClickListener { toggleSelectAll() }
+        binding.screenLogSelectionCopy.setOnClickListener { copySelectedEntries() }
     }
 
     private fun refreshNow() {
@@ -219,6 +237,11 @@ internal class ScreenLogPanelView(
         updateTags(entries.map { it.tag }.distinct().sorted())
         filteredEntries = ScreenLogFilterMatcher.filter(entries, filter)
         adapter.submitList(filteredEntries) {
+            if (selectionMode && selectedEntries().isEmpty()) {
+                exitSelectionMode()
+                return@submitList
+            }
+            if (selectionMode) updateSelectionToolbar()
             if (restoreScrollPending) {
                 restoreListPosition()
             } else if (!ScreenLogDispatcher.isAutoScrollPaused() && filteredEntries.isNotEmpty()) {
@@ -242,7 +265,7 @@ internal class ScreenLogPanelView(
             }
             return
         }
-        binding.screenLogTag.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, values)
+        binding.screenLogTag.adapter = spinnerAdapter(values)
         val index = values.indexOf(selectedTag).takeIf { it >= 0 } ?: 0
         suppressFilterCallbacks = true
         binding.screenLogTag.setSelection(index)
@@ -252,7 +275,7 @@ internal class ScreenLogPanelView(
     private fun toggleHeight() {
         val oldHeight = layoutParams?.height ?: 0
         large = !large
-        state.large = large
+        ScreenLogManager.setPanelExpanded(large)
         val newHeight = panelHeight(large)
         trace("toggleHeight large=$large, oldHeight=$oldHeight, newHeight=$newHeight, parent=${parent?.javaClass?.simpleName}")
         layoutParams = layoutParams.apply { height = newHeight }
@@ -309,8 +332,93 @@ internal class ScreenLogPanelView(
         }
     }
 
-    private fun copyEntry(entry: com.hexin.screenlog.core.ScreenLogEntry) {
-        copyText(ScreenLogFormatter.display(entry), copiedCount = 1)
+    private fun onEntryClick(entry: com.hexin.screenlog.core.ScreenLogEntry) {
+        if (selectionMode) toggleEntrySelection(entry)
+    }
+
+    private fun spinnerAdapter(values: List<String>): ArrayAdapter<String> {
+        return ArrayAdapter(
+            context,
+            R.layout.screen_log_spinner_item,
+            android.R.id.text1,
+            values
+        ).apply {
+            setDropDownViewResource(R.layout.screen_log_spinner_dropdown_item)
+        }
+    }
+
+    private fun onEntryLongClick(entry: com.hexin.screenlog.core.ScreenLogEntry) {
+        if (!selectionMode) enterSelectionMode()
+        toggleEntrySelection(entry)
+    }
+
+    private fun enterSelectionMode() {
+        selectionMode = true
+        requestFocus()
+        autoScrollWasPaused = ScreenLogDispatcher.isAutoScrollPaused()
+        if (!autoScrollWasPaused) ScreenLogManager.setAutoScrollPausedTemporarily(true)
+        adapter.setSelectionMode(true)
+        setFilterControlsEnabled(false)
+        updateSelectionToolbar()
+    }
+
+    private fun exitSelectionMode() {
+        if (!selectionMode) return
+        selectionMode = false
+        adapter.setSelectionMode(false)
+        setFilterControlsEnabled(true)
+        binding.screenLogSelectionBar.visibility = View.GONE
+        binding.screenLogNormalBar.visibility = View.VISIBLE
+        if (!autoScrollWasPaused) ScreenLogManager.setAutoScrollPausedTemporarily(false)
+    }
+
+    private fun toggleEntrySelection(entry: com.hexin.screenlog.core.ScreenLogEntry) {
+        adapter.setSelected(entry, !adapter.isSelected(entry))
+        if (selectedEntries().isEmpty()) exitSelectionMode() else updateSelectionToolbar()
+    }
+
+    private fun toggleSelectAll() {
+        val allSelected = filteredEntries.isNotEmpty() && filteredEntries.all(adapter::isSelected)
+        filteredEntries.forEach { adapter.setSelected(it, !allSelected) }
+        if (selectedEntries().isEmpty()) exitSelectionMode() else updateSelectionToolbar()
+    }
+
+    private fun selectedEntries(): List<com.hexin.screenlog.core.ScreenLogEntry> {
+        return filteredEntries.filter(adapter::isSelected)
+    }
+
+    private fun updateSelectionToolbar() {
+        val count = selectedEntries().size
+        binding.screenLogNormalBar.visibility = View.INVISIBLE
+        binding.screenLogSelectionBar.visibility = View.VISIBLE
+        binding.screenLogSelectionCount.text = resources.getQuantityString(
+            R.plurals.screen_log_selected_count,
+            count,
+            count
+        )
+        val allSelected = filteredEntries.isNotEmpty() && filteredEntries.all(adapter::isSelected)
+        binding.screenLogSelectionAll.setText(
+            if (allSelected) R.string.screen_log_deselect_all else R.string.screen_log_select_all
+        )
+    }
+
+    private fun setFilterControlsEnabled(enabled: Boolean) {
+        listOf(
+            binding.screenLogSearch,
+            binding.screenLogLevel,
+            binding.screenLogTag,
+            binding.screenLogAutoScroll
+        ).forEach {
+            it.isEnabled = enabled
+            it.alpha = if (enabled) 1f else 0.5f
+        }
+    }
+
+    private fun copySelectedEntries() {
+        val entries = selectedEntries()
+        if (entries.isEmpty()) return
+        copyEntries(entries)
+        exitSelectionMode()
     }
 
     private fun copyFilteredEntries() {
@@ -320,8 +428,24 @@ internal class ScreenLogPanelView(
             Toast.makeText(context, R.string.screen_log_nothing_to_copy, Toast.LENGTH_SHORT).show()
             return
         }
-        val text = entries.joinToString(separator = "\n") { ScreenLogFormatter.display(it) }
+        copyEntries(entries)
+    }
+
+    private fun copyEntries(entries: List<com.hexin.screenlog.core.ScreenLogEntry>) {
+        val options = ScreenLogManager.copyOptions()
+        val text = entries.joinToString(separator = "\n") {
+            ScreenLogFormatter.formatForCopy(it, options)
+        }
         copyText(text, copiedCount = entries.size)
+    }
+
+    private fun confirmClearLogs() {
+        AlertDialog.Builder(context)
+            .setTitle(R.string.screen_log_clear_confirm_title)
+            .setMessage(R.string.screen_log_clear_confirm_message)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.screen_log_clear) { _, _ -> ScreenLogManager.clearLogs() }
+            .show()
     }
 
     private fun copyText(text: String, copiedCount: Int) {

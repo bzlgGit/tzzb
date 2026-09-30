@@ -10,6 +10,7 @@ import android.widget.FrameLayout
 import android.view.ViewGroup
 import com.hexin.screenlog.core.ScreenLogDispatcher
 import com.hexin.screenlog.core.ScreenLogEntry
+import com.hexin.screenlog.core.ScreenLogPreferences
 import com.hexin.screenlog.storage.ScreenLogCleaner
 import com.hexin.screenlog.storage.ScreenLogFileReader
 import com.hexin.screenlog.storage.ScreenLogFileWriter
@@ -33,6 +34,10 @@ object ScreenLogManager {
     private var floatingVisible = false
     private var panelVisible = false
     private var touchMode = ScreenLogTouchMode.LOG_PANEL
+    private var copyOptions = ScreenLogCopyOptions()
+    private var preferences: ScreenLogPreferences? = null
+    private var autoScrollEnabled = true
+    private var autoScrollTemporarilyPaused = false
     private val panelState = ScreenLogPanelState()
 
     fun init(config: ScreenLogConfig) {
@@ -42,7 +47,17 @@ object ScreenLogManager {
             runOnMain { disableUi() }
             return
         }
-        ScreenLogDispatcher.setRecordingEnabled(true)
+        preferences = ScreenLogPreferences(config.application).also { storedPreferences ->
+            touchMode = storedPreferences.touchMode(ScreenLogTouchMode.LOG_PANEL)
+            copyOptions = storedPreferences.copyOptions(config.copyOptions)
+            panelState.large = storedPreferences.panelExpanded(false)
+            panelState.floatingX = storedPreferences.floatingX()
+            panelState.floatingY = storedPreferences.floatingY()
+            ScreenLogDispatcher.setRecordingEnabled(storedPreferences.recordingEnabled(true))
+            autoScrollEnabled = storedPreferences.autoScrollEnabled(true)
+            autoScrollTemporarilyPaused = false
+            applyAutoScrollState()
+        }
         val logDir = logDir(config)
         ScreenLogCleaner(logDir).clean(config.keepDays)
         ScreenLogDispatcher.configure(config.maxMemoryEntries)
@@ -104,12 +119,31 @@ object ScreenLogManager {
         ScreenLogFileWriter.clearAll()
     }
 
+    internal fun isPanelVisible(): Boolean = panelVisible
+
+    internal fun setPanelVisible(visible: Boolean) {
+        if (visible) showPanel() else hidePanel()
+    }
+
     fun pauseAutoScroll() {
-        ScreenLogDispatcher.setAutoScrollPaused(true)
+        setAutoScrollEnabled(false)
     }
 
     fun resumeAutoScroll() {
-        ScreenLogDispatcher.setAutoScrollPaused(false)
+        setAutoScrollEnabled(true)
+    }
+
+    internal fun isAutoScrollEnabled(): Boolean = autoScrollEnabled
+
+    internal fun setAutoScrollEnabled(enabled: Boolean) {
+        autoScrollEnabled = enabled
+        preferences?.setAutoScrollEnabled(enabled)
+        applyAutoScrollState()
+    }
+
+    internal fun setAutoScrollPausedTemporarily(paused: Boolean) {
+        autoScrollTemporarilyPaused = paused
+        applyAutoScrollState()
     }
 
     fun isRecordingEnabled(): Boolean {
@@ -119,6 +153,7 @@ object ScreenLogManager {
     fun setRecordingEnabled(enabled: Boolean) {
         if (!isEnabled()) return
         ScreenLogDispatcher.setRecordingEnabled(enabled)
+        preferences?.setRecordingEnabled(enabled)
     }
 
     fun toggleRecording() {
@@ -130,6 +165,7 @@ object ScreenLogManager {
     fun setTouchMode(mode: ScreenLogTouchMode) {
         Log.i(TAG, "setTouchMode from=$touchMode to=$mode")
         touchMode = mode
+        preferences?.setTouchMode(mode)
         runOnMain {
             panelView?.setTouchMode(mode)
             floatingView?.setTouchMode(mode)
@@ -180,21 +216,37 @@ object ScreenLogManager {
     }
 
     internal fun settingsSummary(): String {
-        val cfg = config ?: return "ScreenLog is not initialized."
+        val cfg = config ?: return "ScreenLog 尚未初始化"
         val files = logDir(cfg).listFiles()?.filter { it.isFile }?.sortedByDescending { it.name }.orEmpty()
-        val fileInfo = files.joinToString(separator = "\n") { "${it.name}  ${it.length() / 1024}KB" }
+        val fileInfo = files.joinToString(separator = "\n") { "${it.name}  ${it.length() / 1024} KB" }
         return buildString {
-            appendLine("Enabled: ${cfg.enable}")
-            appendLine("Persist: ${cfg.enablePersist}")
-            appendLine("Keep days: ${cfg.keepDays}")
-            appendLine("Max file: ${cfg.maxFileSizeMb}MB")
-            appendLine("Min level: ${cfg.minLevel}")
-            appendLine("Recording: ${if (isRecordingEnabled()) "enabled" else "stopped"}")
-            appendLine("Touch target: ${if (touchMode == ScreenLogTouchMode.LOG_PANEL) "log panel" else "underlying page"}")
-            appendLine("Memory entries: ${ScreenLogDispatcher.snapshot().size}")
+            appendLine("日志功能：${if (cfg.enable) "已启用" else "未启用"}")
+            appendLine("文件持久化：${if (cfg.enablePersist) "已启用" else "未启用"}")
+            appendLine("文件保留：${cfg.keepDays} 天")
+            appendLine("单文件上限：${cfg.maxFileSizeMb} MB")
+            appendLine("最低级别：${cfg.minLevel}")
+            appendLine("内存日志：${ScreenLogDispatcher.snapshot().size} 条")
             appendLine()
-            append(if (fileInfo.isBlank()) "No log files." else fileInfo)
+            append(if (fileInfo.isBlank()) "暂无日志文件" else fileInfo)
         }
+    }
+
+    internal fun copyOptions(): ScreenLogCopyOptions = copyOptions
+
+    internal fun setCopyOptions(options: ScreenLogCopyOptions) {
+        copyOptions = options
+        preferences?.setCopyOptions(options)
+    }
+
+    internal fun setPanelExpanded(expanded: Boolean) {
+        panelState.large = expanded
+        preferences?.setPanelExpanded(expanded)
+    }
+
+    internal fun setFloatingPosition(x: Int, y: Int) {
+        panelState.floatingX = x
+        panelState.floatingY = y
+        preferences?.setFloatingPosition(x, y)
     }
 
     private val activityCallbacks = object : Application.ActivityLifecycleCallbacks {
@@ -229,14 +281,23 @@ object ScreenLogManager {
         val container = activity.findViewById<ViewGroup>(android.R.id.content) ?: return
         if (floatingView?.parent === container) return
         floatingView?.let { removeFromParent(it) }
-        floatingView = ScreenLogFloatingView(activity, panelState).also { view ->
+        floatingView = ScreenLogFloatingView(activity).also { view ->
             view.setPanelVisible(panelVisible)
-            val left = panelState.floatingX ?: activity.dp(12)
-            val top = panelState.floatingY ?: activity.dp(120)
+            val entryWidth = activity.dp(52)
+            val edgeSpacing = activity.dp(8)
+            val left = (panelState.floatingX ?: activity.dp(12)).coerceIn(
+                edgeSpacing,
+                (activity.resources.displayMetrics.widthPixels - entryWidth - edgeSpacing).coerceAtLeast(edgeSpacing)
+            )
+            val top = (panelState.floatingY ?: activity.dp(120)).coerceIn(
+                0,
+                (activity.resources.displayMetrics.heightPixels - activity.dp(48)).coerceAtLeast(0)
+            )
+            setFloatingPosition(left, top)
             container.addView(
                 view,
                 FrameLayout.LayoutParams(
-                    activity.dp(52),
+                    entryWidth,
                     FrameLayout.LayoutParams.WRAP_CONTENT,
                     android.view.Gravity.TOP or android.view.Gravity.START
                 ).apply {
@@ -297,6 +358,10 @@ object ScreenLogManager {
         if (Looper.myLooper() == Looper.getMainLooper()) block() else mainHandler.post(block)
     }
 
+    private fun applyAutoScrollState() {
+        ScreenLogDispatcher.setAutoScrollPaused(!autoScrollEnabled || autoScrollTemporarilyPaused)
+    }
+
     private fun logDir(config: ScreenLogConfig): File {
         return File(config.application.filesDir, "screen-log")
     }
@@ -317,6 +382,6 @@ object ScreenLogManager {
     private fun isEnabled(): Boolean = config?.enable == true
 
     private fun Activity.isUsable(): Boolean {
-        return !isFinishing && !isDestroyed
+        return !isFinishing && !isDestroyed && this !is com.hexin.screenlog.ui.ScreenLogSettingsActivity
     }
 }

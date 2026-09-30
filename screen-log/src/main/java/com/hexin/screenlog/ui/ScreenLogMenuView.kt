@@ -1,5 +1,6 @@
 package com.hexin.screenlog.ui
 
+import android.app.AlertDialog
 import android.content.Context
 import android.graphics.Typeface
 import android.view.Gravity
@@ -24,7 +25,7 @@ class ScreenLogMenuView(context: Context) : LinearLayout(context), ScreenLogDisp
 
     init {
         orientation = VERTICAL
-        setBackgroundColor(0xF8FFFFFF.toInt())
+        background = ContextCompat.getDrawable(context, R.drawable.screen_log_menu_bg)
         elevation = context.dp(8).toFloat()
         setPadding(context.dp(6), context.dp(6), context.dp(6), context.dp(6))
 
@@ -34,20 +35,20 @@ class ScreenLogMenuView(context: Context) : LinearLayout(context), ScreenLogDisp
         addView(menuLabel(context.getString(R.string.screen_log_touch_target)))
         addView(LinearLayout(context).apply {
             orientation = HORIZONTAL
-            addView(touchLogPanel, LayoutParams(0, context.dp(34), 1f).apply {
+            addView(touchLogPanel, LayoutParams(0, context.dp(40), 1f).apply {
                 marginEnd = context.dp(3)
             })
-            addView(touchUnderlyingPage, LayoutParams(0, context.dp(34), 1f).apply {
+            addView(touchUnderlyingPage, LayoutParams(0, context.dp(40), 1f).apply {
                 marginStart = context.dp(3)
             })
         })
-        addView(menuItem("Clear logs").apply {
-            setOnClickListener { ScreenLogManager.clearLogs() }
+        addView(menuItem(R.string.screen_log_clear_logs, R.drawable.screen_log_ic_clear).apply {
+            setOnClickListener { confirmClearLogs() }
         })
-        addView(menuItem("Settings").apply {
+        addView(menuItem(R.string.screen_log_settings, R.drawable.screen_log_ic_settings).apply {
             setOnClickListener { ScreenLogManager.openSettings() }
         })
-        addView(menuItem("Collapse").apply {
+        addView(menuItem(R.string.screen_log_collapse, R.drawable.screen_log_ic_expand).apply {
             setOnClickListener { this@ScreenLogMenuView.visibility = View.GONE }
         })
 
@@ -128,10 +129,12 @@ class ScreenLogMenuView(context: Context) : LinearLayout(context), ScreenLogDisp
             text = context.getString(textRes)
             textSize = 13f
             setTextColor(ContextCompat.getColor(context, R.color.screen_log_text_primary))
-            minHeight = context.dp(40)
+            minHeight = context.dp(48)
             gravity = Gravity.CENTER_VERTICAL
             switchMinWidth = context.dp(40)
             switchPadding = context.dp(8)
+            thumbTintList = ContextCompat.getColorStateList(context, R.color.screen_log_switch_thumb)
+            trackTintList = ContextCompat.getColorStateList(context, R.color.screen_log_switch_track)
             setPadding(context.dp(8), 0, context.dp(4), 0)
         }
     }
@@ -154,14 +157,25 @@ class ScreenLogMenuView(context: Context) : LinearLayout(context), ScreenLogDisp
         }
     }
 
-    private fun menuItem(text: String): TextView {
+    private fun menuItem(textRes: Int, iconRes: Int): TextView {
         return TextView(context).apply {
-            this.text = text
+            text = context.getString(textRes)
             textSize = 13f
             setTextColor(ContextCompat.getColor(context, R.color.screen_log_text_primary))
-            minHeight = context.dp(34)
+            minHeight = context.dp(48)
             gravity = Gravity.CENTER_VERTICAL
             setPadding(context.dp(8), 0, context.dp(8), 0)
+            setCompoundDrawablesRelativeWithIntrinsicBounds(iconRes, 0, 0, 0)
+            compoundDrawablePadding = context.dp(12)
         }
+    }
+
+    private fun confirmClearLogs() {
+        AlertDialog.Builder(context)
+            .setTitle(R.string.screen_log_clear_confirm_title)
+            .setMessage(R.string.screen_log_clear_confirm_message)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.screen_log_clear) { _, _ -> ScreenLogManager.clearLogs() }
+            .show()
     }
 }

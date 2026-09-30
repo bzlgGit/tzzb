@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="screen_log_bg">#F8FAFC</color>
-    <color name="screen_log_panel_bg">#BFFDFEFE</color>
-    <color name="screen_log_text_primary">#111827</color>
-    <color name="screen_log_text_secondary">#5B6472</color>
-    <color name="screen_log_line">#DCE2EA</color>
-    <color name="screen_log_accent">#0F766E</color>
-    <color name="screen_log_error">#B42318</color>
-    <color name="screen_log_warn">#A15C07</color>
-    <color name="screen_log_info">#175CD3</color>
+    <color name="screen_log_bg">#F4F5F7</color>
+    <color name="screen_log_panel_bg">#8C000000</color>
+    <color name="screen_log_surface">#F21D1F23</color>
+    <color name="screen_log_field_bg">#E627292C</color>
+    <color name="screen_log_text_primary">#FFFFFFFF</color>
+    <color name="screen_log_text_secondary">#B3FFFFFF</color>
+    <color name="screen_log_line">#33FFFFFF</color>
+    <color name="screen_log_brand">#FF4134</color>
+    <color name="screen_log_accent">#FF4134</color>
+    <color name="screen_log_error">#FF4134</color>
+    <color name="screen_log_warn">#FF9500</color>
+    <color name="screen_log_info">#4381FF</color>
+    <color name="screen_log_debug">#B3FFFFFF</color>
+    <color name="screen_log_success">#29B393</color>
+    <color name="screen_log_selected_bg">#33FF4134</color>
+    <color name="screen_log_page_text_primary">#333333</color>
+    <color name="screen_log_page_text_secondary">#666666</color>
+    <color name="screen_log_page_surface">#FFFFFF</color>
+    <color name="screen_log_page_divider">#F2F2F2</color>
 </resources>

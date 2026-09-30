@@ -17,7 +17,7 @@
 - 不替代 `logcat` 或完整日志平台。
 - 不自动采集系统、网络或第三方 SDK 日志。
 - 不负责上传、分享、加密和脱敏。
-- 不提供跨进程 UI 状态恢复。
+- 不恢复跨进程的临时筛选、列表位置和多选状态。
 - 当前不面向多窗口并行展示。
 
 ## 2. 模块结构
@@ -39,6 +39,7 @@ screen-log/
 | API | `ScreenLogManager` | 模块编排、Activity 生命周期、View 挂载和公开控制 API |
 | Core | `ScreenLogEntry` | 单条日志的数据模型 |
 | Core | `ScreenLogDispatcher` | 有界内存日志、监听通知、自动滚动状态 |
+| Core | `ScreenLogPreferences` | 集中读写用户可配置偏好及默认值 |
 | Core | `ScreenLogFormatter` | 展示文本与 JSON Lines 序列化 |
 | Storage | `ScreenLogFileWriter` | 单线程异步写文件和单日容量限制 |
 | Storage | `ScreenLogFileReader` | 启动时读取近期日志 |
@@ -72,7 +73,7 @@ flowchart LR
 `ScreenLogManager.init(config)` 依次执行：
 
 1. 保存配置；`enable=false` 时移除现有 UI、清理宿主引用并直接返回。
-2. `enable=true` 时将运行时记录状态初始化为开启。
+2. `enable=true` 时从模块私有 `SharedPreferences` 恢复记录、自动滚动、触摸、复制和布局偏好；无已保存值时使用默认配置。
 3. 清理超出 `keepDays` 的历史文件。
 4. 配置内存日志上限。
 5. 读取近期日志文件并恢复到内存。
@@ -130,17 +131,19 @@ View 本身会持有创建它的 Activity Context，因此在 `onActivityPaused`
 - 首个可见列表位置和像素偏移。
 - 悬浮入口 X/Y 坐标。
 
-状态不包含 `Activity`、`View`、`Adapter` 或 `LayoutManager`，因此不会反向持有旧页面。状态生命周期与应用进程一致，进程重启后恢复默认值。
+状态不包含 `Activity`、`View`、`Adapter` 或 `LayoutManager`，因此不会反向持有旧页面。筛选条件和列表位置与应用进程同生命周期；面板高度、悬浮入口坐标等用户偏好通过 `ScreenLogPreferences` 跨进程恢复。
 
 ## 6. 面板实现
 
 `ScreenLogPanelView` 使用 `ConstraintLayout + RecyclerView`：
 
-- 顶部操作区：标题、复制、清空。
+- 顶部操作区：标题、复制、清空、设置；长按日志后切换为多选操作区。
 - 筛选区：关键字、等级、Tag、暂停/恢复滚动。
 - 内容区：RecyclerView 日志列表。
 
 日志变化通知会延迟约 180ms 合并刷新，降低高频日志下的 UI 更新次数。Adapter 使用 `ListAdapter + DiffUtil` 在后台计算差异，只更新新增、删除或变化的条目；diff 提交完成后再恢复滚动位置或跟随最新日志。
+
+长按日志进入多选模式，选中状态按日志对象维护；多选期间筛选条件锁定并暂停自动滚动，退出后恢复原状态。“全选”仅作用于当前筛选结果。复制展示格式与剪贴板格式分离，剪贴板默认只输出 message，可通过 `ScreenLogCopyOptions` 增加时间、等级、Tag、线程名和 extras。
 
 ### 高度切换
 
@@ -161,7 +164,7 @@ View 本身会持有创建它的 Activity Context，因此在 `onActivityPaused`
 - 默认开启：新日志同时进入内存和文件队列。
 - 手动关闭：保留已有日志和 UI，后续 `ScreenLog.*` 调用在创建日志条目前被忽略。
 - 再次开启：从开启时刻继续追加。
-- 状态在 Activity 切换间保持，进程重新初始化时恢复为开启。
+- 状态在 Activity 切换间保持，并在进程重新初始化时恢复上次用户选择。
 
 ### 触摸模式
 
@@ -251,7 +254,7 @@ UI View 和 `ScreenLogPanelState` 为模块内部实现，不应由业务代码�
 - `enable=true` 时支持运行时开始/停止记录；停止记录不会清空已有日志。
 - 组件以显示交互为主，当前采用真机交互验收，不要求自动化测试。
 - 组件仅供内部使用，不提供脱敏和加密。
-- 所有 Activity 自动参与挂载，以满足跨 Activity 无感延续的目标，不设置 allowlist。
+- 普通 Activity 自动参与挂载；设置页不挂载悬浮入口和日志面板，避免浮层遮挡设置交互。
 - 列表使用 `ListAdapter + DiffUtil`，避免每次刷新全量重绑可见条目。
 - 状态型操作使用中文 Switch；触摸目标使用“日志面板/下层页面”分段选择。
 
@@ -263,7 +266,7 @@ UI View 和 `ScreenLogPanelState` 为模块内部实现，不应由业务代码�
 | 中 | 无文件写入错误回调和 flush | 增加错误观测、队列状态和可选 flush API |
 | 低 | UI 文案部分硬编码英文 | 迁移到 string resource，并补国际化 |
 | 低 | 诊断用触摸日志较多 | 功能稳定后用调试开关控制或移除 |
-| 低 | UI 状态仅进程内保存 | 若有进程重启恢复诉求，再引入轻量持久化 |
+| 低 | 悬浮入口坐标按像素保存 | 恢复时按当前屏幕范围约束，后续可按需改为归一化坐标 |
 
 ## 14. 方案评审决策点
 

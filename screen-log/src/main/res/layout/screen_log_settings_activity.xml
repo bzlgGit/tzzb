@@ -3,81 +3,206 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/screen_log_bg"
-    android:padding="18dp">
+    android:background="@color/screen_log_bg">
+
+    <ImageView
+        android:id="@+id/screenLogSettingsIcon"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_marginStart="16dp"
+        android:contentDescription="@null"
+        android:src="@drawable/screen_log_ic_settings"
+        android:tint="@color/screen_log_brand"
+        app:layout_constraintBottom_toBottomOf="@id/screenLogSettingsTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/screenLogSettingsTitle" />
 
     <TextView
         android:id="@+id/screenLogSettingsTitle"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="56dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="16dp"
+        android:gravity="center_vertical"
         android:text="@string/screen_log_settings"
-        android:textColor="@color/screen_log_text_primary"
+        android:textColor="@color/screen_log_page_text_primary"
         android:textSize="20sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@id/screenLogSettingsIcon"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/screenLogSettingsSummary"
+    <ScrollView
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
-        android:lineSpacingExtra="4dp"
-        android:textColor="@color/screen_log_text_primary"
-        android:textSize="14sp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/screenLogSettingsTitle" />
+        app:layout_constraintTop_toBottomOf="@id/screenLogSettingsTitle">
 
-    <TextView
-        android:id="@+id/screenLogTouchTargetLabel"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="@string/screen_log_touch_target"
-        android:textColor="@color/screen_log_text_secondary"
-        android:textSize="13sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/screenLogSettingsSummary" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="24dp">
 
-    <Button
-        android:id="@+id/screenLogTouchLogPanel"
-        android:layout_width="0dp"
-        android:layout_height="44dp"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/screen_log_button_bg"
-        android:text="@string/screen_log_touch_log_panel"
-        android:textAllCaps="false"
-        android:textColor="@color/screen_log_accent"
-        app:layout_constraintEnd_toStartOf="@id/screenLogTouchUnderlyingPage"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/screenLogTouchTargetLabel" />
+            <TextView
+                style="@style/ScreenLogSettingsSectionTitle"
+                android:text="@string/screen_log_settings_runtime" />
 
-    <Button
-        android:id="@+id/screenLogTouchUnderlyingPage"
-        android:layout_width="0dp"
-        android:layout_height="44dp"
-        android:layout_marginStart="10dp"
-        android:background="@drawable/screen_log_button_bg"
-        android:text="@string/screen_log_touch_underlying_page"
-        android:textAllCaps="false"
-        android:textColor="@color/screen_log_accent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/screenLogTouchLogPanel"
-        app:layout_constraintTop_toTopOf="@id/screenLogTouchLogPanel" />
+            <LinearLayout
+                style="@style/ScreenLogSettingsCard"
+                android:orientation="vertical">
 
-    <Button
-        android:id="@+id/screenLogClearAll"
-        android:layout_width="0dp"
-        android:layout_height="44dp"
-        android:layout_marginTop="14dp"
-        android:background="@drawable/screen_log_button_bg"
-        android:text="@string/screen_log_clear"
-        android:textAllCaps="false"
-        android:textColor="@color/screen_log_accent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/screenLogTouchLogPanel" />
+                <Switch
+                    android:id="@+id/screenLogPanelVisible"
+                    style="@style/ScreenLogSettingsSwitch"
+                    android:text="@string/screen_log_panel_visible" />
+
+                <TextView
+                    style="@style/ScreenLogSettingsHint"
+                    android:text="@string/screen_log_panel_visible_hint" />
+
+                <View style="@style/ScreenLogSettingsDivider" />
+
+                <Switch
+                    android:id="@+id/screenLogRecording"
+                    style="@style/ScreenLogSettingsSwitch"
+                    android:text="@string/screen_log_recording" />
+
+                <View style="@style/ScreenLogSettingsDivider" />
+
+                <Switch
+                    android:id="@+id/screenLogAutoScroll"
+                    style="@style/ScreenLogSettingsSwitch"
+                    android:text="@string/screen_log_auto_scroll" />
+            </LinearLayout>
+
+            <TextView
+                style="@style/ScreenLogSettingsSectionTitle"
+                android:text="@string/screen_log_settings_interaction" />
+
+            <LinearLayout
+                style="@style/ScreenLogSettingsCard"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/screen_log_touch_target"
+                    android:textColor="@color/screen_log_page_text_primary"
+                    android:textSize="15sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/screenLogTouchLogPanel"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/screen_log_page_button_bg"
+                        android:text="@string/screen_log_touch_log_panel"
+                        android:textAllCaps="false"
+                        android:textColor="@color/screen_log_brand" />
+
+                    <Button
+                        android:id="@+id/screenLogTouchUnderlyingPage"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/screen_log_page_button_bg"
+                        android:text="@string/screen_log_touch_underlying_page"
+                        android:textAllCaps="false"
+                        android:textColor="@color/screen_log_brand" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                style="@style/ScreenLogSettingsSectionTitle"
+                android:text="@string/screen_log_settings_copy" />
+
+            <LinearLayout
+                style="@style/ScreenLogSettingsCard"
+                android:orientation="vertical">
+
+                <Switch
+                    android:id="@+id/screenLogCopyMessage"
+                    style="@style/ScreenLogSettingsSwitch"
+                    android:checked="true"
+                    android:enabled="false"
+                    android:text="@string/screen_log_copy_message" />
+
+                <View style="@style/ScreenLogSettingsDivider" />
+
+                <Switch
+                    android:id="@+id/screenLogCopyTime"
+                    style="@style/ScreenLogSettingsSwitch"
+                    android:text="@string/screen_log_copy_time" />
+
+                <View style="@style/ScreenLogSettingsDivider" />
+
+                <Switch
+                    android:id="@+id/screenLogCopyLevel"
+                    style="@style/ScreenLogSettingsSwitch"
+                    android:text="@string/screen_log_copy_level" />
+
+                <View style="@style/ScreenLogSettingsDivider" />
+
+                <Switch
+                    android:id="@+id/screenLogCopyTag"
+                    style="@style/ScreenLogSettingsSwitch"
+                    android:text="@string/screen_log_copy_tag" />
+
+                <View style="@style/ScreenLogSettingsDivider" />
+
+                <Switch
+                    android:id="@+id/screenLogCopyThread"
+                    style="@style/ScreenLogSettingsSwitch"
+                    android:text="@string/screen_log_copy_thread" />
+
+                <View style="@style/ScreenLogSettingsDivider" />
+
+                <Switch
+                    android:id="@+id/screenLogCopyExtras"
+                    style="@style/ScreenLogSettingsSwitch"
+                    android:text="@string/screen_log_copy_extras" />
+            </LinearLayout>
+
+            <TextView
+                style="@style/ScreenLogSettingsSectionTitle"
+                android:text="@string/screen_log_settings_storage" />
+
+            <TextView
+                android:id="@+id/screenLogSettingsSummary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/screen_log_settings_card_bg"
+                android:lineSpacingExtra="4dp"
+                android:padding="16dp"
+                android:textColor="@color/screen_log_page_text_secondary"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/screenLogClearAll"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/screen_log_page_button_bg"
+                android:drawableStart="@drawable/screen_log_ic_clear"
+                android:drawablePadding="8dp"
+                android:gravity="center"
+                android:text="@string/screen_log_clear_logs"
+                android:textAllCaps="false"
+                android:textColor="@color/screen_log_brand" />
+        </LinearLayout>
+    </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

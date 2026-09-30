@@ -14,8 +14,14 @@ import com.hexin.screenlog.core.ScreenLogFormatter
 import com.hexin.screenlog.databinding.ScreenLogItemBinding
 
 class ScreenLogAdapter(
-    private val onCopy: (ScreenLogEntry) -> Unit
+    private val onClick: (ScreenLogEntry) -> Unit,
+    private val onLongClick: (ScreenLogEntry) -> Unit
 ) : ListAdapter<ScreenLogEntry, ScreenLogAdapter.Holder>(DiffCallback) {
+
+    private val selectedEntries = java.util.Collections.newSetFromMap(
+        java.util.IdentityHashMap<ScreenLogEntry, Boolean>()
+    )
+    private var selectionMode = false
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
         val binding = ScreenLogItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -31,9 +37,11 @@ class ScreenLogAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         init {
+            binding.root.setOnClickListener {
+                currentEntry()?.let(onClick)
+            }
             binding.root.setOnLongClickListener {
-                val position = bindingAdapterPosition
-                if (position != RecyclerView.NO_POSITION) onCopy(getItem(position))
+                currentEntry()?.let(onLongClick)
                 true
             }
         }
@@ -47,15 +55,43 @@ class ScreenLogAdapter(
             val extrasText = entry.extras.orEmpty().entries.joinToString { "${it.key}=${it.value}" }
             binding.screenLogExtras.text = extrasText
             binding.screenLogExtras.visibility = if (extrasText.isBlank()) View.GONE else View.VISIBLE
+            val selected = selectedEntries.contains(entry)
+            binding.screenLogSelection.visibility = if (selectionMode) View.VISIBLE else View.GONE
+            binding.screenLogSelection.setImageResource(
+                if (selected) R.drawable.screen_log_ic_checked else R.drawable.screen_log_ic_checkbox
+            )
+            binding.root.setBackgroundResource(
+                if (selected) R.drawable.screen_log_item_selected_bg else android.R.color.transparent
+            )
+        }
+
+        private fun currentEntry(): ScreenLogEntry? {
+            val position = bindingAdapterPosition
+            return position.takeIf { it != RecyclerView.NO_POSITION }?.let(::getItem)
         }
     }
+
+    fun setSelectionMode(enabled: Boolean) {
+        if (selectionMode == enabled) return
+        selectionMode = enabled
+        if (!enabled) selectedEntries.clear()
+        notifyItemRangeChanged(0, itemCount)
+    }
+
+    fun setSelected(entry: ScreenLogEntry, selected: Boolean) {
+        if (selected) selectedEntries.add(entry) else selectedEntries.remove(entry)
+        val position = currentList.indexOfFirst { it === entry }
+        if (position >= 0) notifyItemChanged(position)
+    }
+
+    fun isSelected(entry: ScreenLogEntry): Boolean = selectedEntries.contains(entry)
 
     private fun colorFor(level: ScreenLogLevel): Int {
         return when (level) {
             ScreenLogLevel.ERROR -> R.color.screen_log_error
             ScreenLogLevel.WARN -> R.color.screen_log_warn
             ScreenLogLevel.INFO -> R.color.screen_log_info
-            else -> R.color.screen_log_accent
+            else -> R.color.screen_log_debug
         }
     }
 

@@ -11,8 +11,7 @@ import com.hexin.screenlog.api.ScreenLogManager
 import com.hexin.screenlog.api.ScreenLogTouchMode
 
 internal class ScreenLogFloatingView(
-    context: Context,
-    private val state: ScreenLogPanelState
+    context: Context
 ) : FrameLayout(context) {
 
     private val entryButton = TextView(context)
@@ -35,11 +34,13 @@ internal class ScreenLogFloatingView(
         entryButton.setTextColor(0xFFFFFFFF.toInt())
         entryButton.textSize = 12f
         entryButton.background = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.screen_log_entry_bg)
-        addView(entryButton, LayoutParams(context.dp(52), context.dp(40)))
+        entryButton.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.screen_log_ic_expand, 0, 0, 0)
+        entryButton.compoundDrawablePadding = context.dp(4)
+        addView(entryButton, LayoutParams(context.dp(52), context.dp(48)))
 
         menuView.visibility = View.GONE
-        addView(menuView, LayoutParams(context.dp(190), LayoutParams.WRAP_CONTENT).apply {
-            topMargin = context.dp(46)
+        addView(menuView, LayoutParams(context.dp(216), LayoutParams.WRAP_CONTENT).apply {
+            topMargin = context.dp(54)
         })
 
         entryButton.setOnClickListener {
@@ -91,8 +92,7 @@ internal class ScreenLogFloatingView(
     }
 
     fun savePosition() {
-        state.floatingX = x.toInt()
-        state.floatingY = y.toInt()
+        ScreenLogManager.setFloatingPosition(x.toInt(), y.toInt())
     }
 
     private fun stickToEdge() {
@@ -103,7 +103,7 @@ internal class ScreenLogFloatingView(
 
     private fun resizeForMenu() {
         val params = layoutParams
-        params.width = if (menuView.visibility == View.VISIBLE) context.dp(190) else context.dp(52)
+        params.width = if (menuView.visibility == View.VISIBLE) context.dp(216) else context.dp(52)
         params.height = LayoutParams.WRAP_CONTENT
         layoutParams = params
     }
