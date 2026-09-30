@@ -2,12 +2,15 @@ package com.hexin.screenlog.core
 
 import com.hexin.screenlog.api.ScreenLogCopyOptions
 import com.hexin.screenlog.api.ScreenLogLevel
+import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 object ScreenLogFormatter {
+
+    private const val JSON_INDENT_SPACES = 2
 
     private val timeFormat = ThreadLocal.withInitial {
         SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
@@ -22,7 +25,7 @@ object ScreenLogFormatter {
             append("][")
             append(entry.tag)
             append("] ")
-            append(entry.message)
+            append(formatMessage(entry))
             if (!entry.extras.isNullOrEmpty()) {
                 append(" extras=")
                 append(entry.extras)
@@ -39,10 +42,21 @@ object ScreenLogFormatter {
                 appendField(entry.threadName)
             }
             if (isNotEmpty()) append(' ')
-            append(entry.message)
+            append(formatMessage(entry))
             if (options.includeExtras && !entry.extras.isNullOrEmpty()) {
                 append(" extras=")
                 append(entry.extras)
+            }
+        }
+    }
+
+    fun formatMessage(entry: ScreenLogEntry): String {
+        val message = if (entry.prettyJson) prettyPrintJson(entry.message) else entry.message
+        return buildString {
+            append(message)
+            if (!entry.throwableStackTrace.isNullOrBlank()) {
+                append('\n')
+                append(entry.throwableStackTrace)
             }
         }
     }
@@ -58,6 +72,8 @@ object ScreenLogFormatter {
         json.put("tag", entry.tag)
         json.put("message", entry.message)
         json.put("threadName", entry.threadName)
+        json.put("prettyJson", entry.prettyJson)
+        json.put("throwableStackTrace", entry.throwableStackTrace)
         val extras = JSONObject()
         entry.extras.orEmpty().forEach { (key, value) -> extras.put(key, value) }
         json.put("extras", extras)
@@ -76,9 +92,23 @@ object ScreenLogFormatter {
                 tag = json.optString("tag"),
                 message = json.optString("message"),
                 threadName = json.optString("threadName").takeIf { it.isNotBlank() && it != "null" },
+                prettyJson = json.optBoolean("prettyJson", false),
+                throwableStackTrace = json.optString("throwableStackTrace")
+                    .takeIf { it.isNotBlank() && it != "null" },
                 extras = extras
             )
         }.getOrNull()
+    }
+
+    private fun prettyPrintJson(message: String): String {
+        val trimmed = message.trim()
+        return runCatching {
+            when (trimmed.firstOrNull()) {
+                '{' -> JSONObject(trimmed).toString(JSON_INDENT_SPACES)
+                '[' -> JSONArray(trimmed).toString(JSON_INDENT_SPACES)
+                else -> message
+            }
+        }.getOrDefault(message)
     }
 
     private fun StringBuilder.appendField(value: String) {

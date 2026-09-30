@@ -143,7 +143,7 @@ View 本身会持有创建它的 Activity Context，因此在 `onActivityPaused`
 
 日志变化通知会延迟约 180ms 合并刷新，降低高频日志下的 UI 更新次数。Adapter 使用 `ListAdapter + DiffUtil` 在后台计算差异，只更新新增、删除或变化的条目；diff 提交完成后再恢复滚动位置或跟随最新日志。
 
-长按日志进入多选模式，选中状态按日志对象维护；多选期间筛选条件锁定并暂停自动滚动，退出后恢复原状态。“全选”仅作用于当前筛选结果。复制展示格式与剪贴板格式分离，剪贴板默认只输出 message，可通过 `ScreenLogCopyOptions` 增加时间、等级、Tag、线程名和 extras。
+长按日志进入多选模式，选中状态按日志对象维护；多选期间筛选条件锁定并暂停自动滚动，退出后恢复原状态。“全选”仅作用于当前筛选结果。复制展示格式与剪贴板格式分离，剪贴板默认只输出 message，可通过 `ScreenLogCopyOptions` 增加时间、等级、Tag、线程名和 extras。单条日志启用 `prettyJson` 后，JSON Object 或 JSON Array 类型的 message 会在展示和复制时以两空格缩进，原始 message 仍用于搜索和文件持久化。
 
 ### 高度切换
 

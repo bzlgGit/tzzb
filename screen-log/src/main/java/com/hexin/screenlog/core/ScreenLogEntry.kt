@@ -8,5 +8,7 @@ data class ScreenLogEntry(
     val tag: String,
     val message: String,
     val threadName: String? = null,
+    val prettyJson: Boolean = false,
+    val throwableStackTrace: String? = null,
     val extras: Map<String, String>? = null
 )

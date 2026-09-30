@@ -105,9 +105,10 @@ ScreenLogManager.showPanel()
 ### 4. 写入业务日志
 
 ```kotlin
-ScreenLog.d("WebView", "load url = $url", mapOf("url" to url))
+ScreenLog.d("WebView", "load url = $url", extras = mapOf("url" to url))
 ScreenLog.i("JSBridge", "call method = $methodName")
-ScreenLog.w("Network", "request retry", mapOf("retry" to retryCount.toString()))
+ScreenLog.w("Network", "request retry", extras = mapOf("retry" to retryCount.toString()))
+ScreenLog.i("Network", responseJson, prettyJson = true)
 ScreenLog.e(
     tag = "AccountDelete",
     message = "delete account failed",
@@ -117,6 +118,15 @@ ScreenLog.e(
 ```
 
 建议 Tag 使用稳定的业务域名称，例如 `Login`、`Network`、`WebView`、`JSBridge`、`Page`，不要把动态 ID 拼进 Tag。
+
+`prettyJson=true` 时，JSON Object 或 JSON Array 类型的 message 会以两空格缩进展示和复制；非法 JSON 保持原文。`extras` 位于最后一个参数，建议使用具名参数传入。
+
+公开日志方法的参数顺序为：
+
+```kotlin
+ScreenLog.v/d/i/w(tag, message, prettyJson = false, extras = null)
+ScreenLog.e(tag, message, throwable = null, prettyJson = false, extras = null)
+```
 
 ## 配置说明
 
@@ -183,7 +193,7 @@ ScreenLogManager.setTouchMode(ScreenLogTouchMode.UNDERLYING_PAGE)
 - 内存日志用于当前进程内展示，超过 `maxMemoryEntries` 后淘汰最早数据。
 - 文件位于 App 私有目录：`files/screen-log/`。
 - 文件名为 `screen_log_yyyy-MM-dd.log`。
-- 每行是一条 JSON 记录，包含时间、等级、Tag、消息、线程名和 extras。
+- 每行是一条 JSON 记录，包含时间、等级、Tag、原始消息、线程名、JSON 格式标记、异常堆栈和 extras。
 - 初始化时读取最近文件并恢复到内存，最终仍受 `maxMemoryEntries` 限制。
 - `clearLogs()` 会立即清空内存，文件删除在后台队列执行。
 

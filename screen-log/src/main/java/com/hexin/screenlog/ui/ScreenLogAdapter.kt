@@ -51,7 +51,7 @@ class ScreenLogAdapter(
             binding.screenLogLevelText.text = entry.level.name.take(1)
             binding.screenLogLevelText.setTextColor(ContextCompat.getColor(itemView.context, colorFor(entry.level)))
             binding.screenLogTagText.text = entry.tag
-            binding.screenLogMessage.text = entry.message
+            binding.screenLogMessage.text = ScreenLogFormatter.formatMessage(entry)
             val extrasText = entry.extras.orEmpty().entries.joinToString { "${it.key}=${it.value}" }
             binding.screenLogExtras.text = extrasText
             binding.screenLogExtras.visibility = if (extrasText.isBlank()) View.GONE else View.VISIBLE

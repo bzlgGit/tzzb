@@ -197,18 +197,20 @@ object ScreenLogManager {
         tag: String,
         message: String,
         throwable: Throwable?,
+        prettyJson: Boolean,
         extras: Map<String, String>?
     ) {
         val cfg = config ?: return
         if (!cfg.enable || level.ordinal < cfg.minLevel.ordinal) return
         if (!ScreenLogDispatcher.isRecordingEnabled()) return
-        val fullMessage = if (throwable == null) message else "$message\n${throwable.stackTraceToString()}"
         val entry = ScreenLogEntry(
             timeMillis = System.currentTimeMillis(),
             level = level,
             tag = tag,
-            message = fullMessage,
+            message = message,
             threadName = Thread.currentThread().name,
+            prettyJson = prettyJson,
+            throwableStackTrace = throwable?.stackTraceToString(),
             extras = extras
         )
         ScreenLogDispatcher.append(entry)

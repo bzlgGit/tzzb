@@ -18,6 +18,10 @@ object ScreenLogFilterMatcher {
             append('\n')
             append(entry.message)
             append('\n')
+            if (!entry.throwableStackTrace.isNullOrBlank()) {
+                append(entry.throwableStackTrace)
+                append('\n')
+            }
             entry.extras.orEmpty().forEach { (key, value) ->
                 append(key).append('=').append(value).append('\n')
             }

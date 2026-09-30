@@ -24,8 +24,17 @@ class MainActivity : Activity() {
         )
         ScreenLogManager.showFloatingEntry()
         ScreenLog.d("MainActivity", "screen log module initialized")
-        ScreenLog.i("WebView", "load url = https://example.com", mapOf("url" to "https://example.com"))
+        ScreenLog.i(
+            "WebView",
+            "load url = https://example.com",
+            extras = mapOf("url" to "https://example.com")
+        )
         ScreenLog.e("AccountDelete", "delete account failed, code = 500", extras = mapOf("code" to "500"))
+        ScreenLog.i(
+            tag = "Json",
+            message = """{"code":0,"data":{"name":"screen-log"}}""",
+            prettyJson = true
+        )
         setContentView(createTestEntryView())
     }
 
@@ -109,9 +118,21 @@ class MainActivity : Activity() {
             else -> "Page"
         }
         when (index % 4) {
-            0 -> ScreenLog.d(tag, "debug test log #$index", mapOf("index" to "$index", "case" to "debug"))
-            1 -> ScreenLog.i(tag, "info test log #$index", mapOf("index" to "$index", "keyword" to "screen-log"))
-            2 -> ScreenLog.w(tag, "warn test log #$index", mapOf("index" to "$index", "retry" to "${index % 3}"))
+            0 -> ScreenLog.d(
+                tag,
+                "debug test log #$index",
+                extras = mapOf("index" to "$index", "case" to "debug")
+            )
+            1 -> ScreenLog.i(
+                tag,
+                "info test log #$index",
+                extras = mapOf("index" to "$index", "keyword" to "screen-log")
+            )
+            2 -> ScreenLog.w(
+                tag,
+                "warn test log #$index",
+                extras = mapOf("index" to "$index", "retry" to "${index % 3}")
+            )
             else -> ScreenLog.e(tag, "error test log #$index", extras = mapOf("index" to "$index", "code" to "E$index"))
         }
     }
