@@ -15,7 +15,7 @@ object ScreenLogDispatcher {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val listeners = CopyOnWriteArrayList<Listener>()
     private val entries = ArrayList<ScreenLogEntry>()
-    private var maxMemoryEntries = 2000
+    private var maxMemoryEntries = 1000
     @Volatile
     private var autoScrollPaused = false
     @Volatile
@@ -29,6 +29,17 @@ object ScreenLogDispatcher {
         synchronized(entries) {
             entries.clear()
             entries.addAll(newEntries.takeLast(maxMemoryEntries))
+        }
+        notifyLogsChanged()
+    }
+
+    fun mergeHistory(historyEntries: List<ScreenLogEntry>) {
+        synchronized(entries) {
+            val merged = LinkedHashSet<ScreenLogEntry>(historyEntries.size + entries.size)
+            merged.addAll(historyEntries)
+            merged.addAll(entries)
+            entries.clear()
+            entries.addAll(merged.sortedBy { it.timeMillis }.takeLast(maxMemoryEntries))
         }
         notifyLogsChanged()
     }

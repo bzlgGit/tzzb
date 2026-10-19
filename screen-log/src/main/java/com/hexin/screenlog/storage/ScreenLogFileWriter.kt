@@ -1,6 +1,5 @@
 package com.hexin.screenlog.storage
 
-import com.hexin.screenlog.api.ScreenLogConfig
 import com.hexin.screenlog.api.ScreenLogLevel
 import com.hexin.screenlog.core.ScreenLogEntry
 import com.hexin.screenlog.core.ScreenLogFormatter
@@ -13,22 +12,30 @@ object ScreenLogFileWriter {
 
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private val limitWarned = AtomicBoolean(false)
+    @Volatile
+    private var enabled = false
+    @Volatile
     private var logDir: File? = null
-    private var config: ScreenLogConfig? = null
+    @Volatile
+    private var maxFileSizeMb = 10
 
-    fun init(logDir: File, config: ScreenLogConfig) {
+    fun configure(logDir: File, maxFileSizeMb: Int, enabled: Boolean) {
         this.logDir = logDir
-        this.config = config
-        if (!logDir.exists()) logDir.mkdirs()
+        this.maxFileSizeMb = maxFileSizeMb
+        this.enabled = enabled
+    }
+
+    fun setEnabled(enabled: Boolean) {
+        this.enabled = enabled
     }
 
     fun write(entry: ScreenLogEntry) {
-        val cfg = config ?: return
+        if (!enabled) return
         val dir = logDir ?: return
-        if (!cfg.enablePersist) return
         executor.execute {
+            if (!dir.exists()) dir.mkdirs()
             val file = File(dir, ScreenLogFileNames.today())
-            val maxBytes = cfg.maxFileSizeMb.toLong() * 1024L * 1024L
+            val maxBytes = maxFileSizeMb.toLong() * 1024L * 1024L
             if (file.exists() && file.length() >= maxBytes) {
                 appendLimitWarning(file, maxBytes)
                 return@execute
@@ -40,6 +47,7 @@ object ScreenLogFileWriter {
     fun clearAll() {
         val dir = logDir ?: return
         executor.execute {
+            if (!dir.exists()) return@execute
             dir.listFiles()?.forEach { file ->
                 if (file.isFile && file.name.startsWith("screen_log_")) file.delete()
             }

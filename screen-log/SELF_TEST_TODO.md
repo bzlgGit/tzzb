@@ -74,7 +74,7 @@ checked = false  当前停留在用户浏览位置
 - 日志面板中的 `Pause` / `Resume` 按钮。
 - 悬浮菜单中的 `Pause scroll` / `Resume scroll` 菜单项。
 
-同时新增 `记录日志` Switch，默认开启。关闭后保留已有日志和 UI，不再接收新日志；`ScreenLogConfig.enable=false` 时该运行时开关无效，模块不记录日志也不显示面板。
+同时新增 `记录日志` Switch，默认关闭。测试人员主动开启后持久化该状态，冷启动初始化时恢复；关闭后保留已有日志和 UI，不再接收新日志。`ScreenLogConfig.enable=false` 时该运行时开关无效，模块不记录日志也不显示面板。
 
 #### 日志面板显示
 

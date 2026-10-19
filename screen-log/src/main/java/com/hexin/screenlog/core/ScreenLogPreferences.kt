@@ -18,6 +18,13 @@ internal class ScreenLogPreferences(context: Context) {
         preferences.edit().putBoolean(KEY_RECORDING_ENABLED, enabled).apply()
     }
 
+    fun persistEnabled(defaultValue: Boolean): Boolean =
+        preferences.getBoolean(KEY_PERSIST_ENABLED, defaultValue)
+
+    fun setPersistEnabled(enabled: Boolean) {
+        preferences.edit().putBoolean(KEY_PERSIST_ENABLED, enabled).apply()
+    }
+
     fun autoScrollEnabled(defaultValue: Boolean): Boolean =
         preferences.getBoolean(KEY_AUTO_SCROLL_ENABLED, defaultValue)
 
@@ -77,6 +84,7 @@ internal class ScreenLogPreferences(context: Context) {
     private companion object {
         const val PREFERENCE_NAME = "screen_log_preferences"
         const val KEY_RECORDING_ENABLED = "recording_enabled"
+        const val KEY_PERSIST_ENABLED = "persist_enabled"
         const val KEY_AUTO_SCROLL_ENABLED = "auto_scroll_enabled"
         const val KEY_TOUCH_MODE = "touch_mode"
         const val KEY_COPY_TIME = "copy_time"

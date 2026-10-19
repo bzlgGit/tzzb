@@ -2,6 +2,8 @@ package com.hexin.screenlog.api
 
 import android.app.Activity
 import android.app.Application
+import android.content.ContentResolver
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -14,11 +16,16 @@ import com.hexin.screenlog.core.ScreenLogPreferences
 import com.hexin.screenlog.storage.ScreenLogCleaner
 import com.hexin.screenlog.storage.ScreenLogFileReader
 import com.hexin.screenlog.storage.ScreenLogFileWriter
+import com.hexin.screenlog.storage.ScreenLogExporter
 import com.hexin.screenlog.ui.ScreenLogFloatingView
 import com.hexin.screenlog.ui.ScreenLogPanelView
 import com.hexin.screenlog.ui.ScreenLogPanelState
 import java.io.File
 import java.lang.ref.WeakReference
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 object ScreenLogManager {
@@ -26,7 +33,11 @@ object ScreenLogManager {
     private const val TAG = "ScreenLogManager"
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val storageExecutor by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        Executors.newSingleThreadExecutor()
+    }
     private val initialized = AtomicBoolean(false)
+    private val storageInitialized = AtomicBoolean(false)
     private var config: ScreenLogConfig? = null
     private var currentActivityRef: WeakReference<Activity>? = null
     private var floatingView: ScreenLogFloatingView? = null
@@ -38,13 +49,18 @@ object ScreenLogManager {
     private var preferences: ScreenLogPreferences? = null
     private var autoScrollEnabled = true
     private var autoScrollTemporarilyPaused = false
+    @Volatile
+    private var persistEnabled = false
     private val panelState = ScreenLogPanelState()
 
     fun init(config: ScreenLogConfig) {
         this.config = config
         if (!config.enable) {
-            ScreenLogDispatcher.setRecordingEnabled(false)
-            runOnMain { disableUi() }
+            if (initialized.get()) {
+                ScreenLogDispatcher.setRecordingEnabled(false)
+                ScreenLogFileWriter.setEnabled(false)
+                runOnMain { disableUi() }
+            }
             return
         }
         preferences = ScreenLogPreferences(config.application).also { storedPreferences ->
@@ -53,16 +69,16 @@ object ScreenLogManager {
             panelState.large = storedPreferences.panelExpanded(false)
             panelState.floatingX = storedPreferences.floatingX()
             panelState.floatingY = storedPreferences.floatingY()
-            ScreenLogDispatcher.setRecordingEnabled(storedPreferences.recordingEnabled(true))
+            ScreenLogDispatcher.configure(config.maxMemoryEntries)
+            ScreenLogDispatcher.setRecordingEnabled(storedPreferences.recordingEnabled(false))
+            persistEnabled = storedPreferences.persistEnabled(config.enablePersist)
             autoScrollEnabled = storedPreferences.autoScrollEnabled(true)
             autoScrollTemporarilyPaused = false
             applyAutoScrollState()
         }
         val logDir = logDir(config)
-        ScreenLogCleaner(logDir).clean(config.keepDays)
-        ScreenLogDispatcher.configure(config.maxMemoryEntries)
-        ScreenLogDispatcher.replace(ScreenLogFileReader(logDir).readRecent(config.keepDays))
-        ScreenLogFileWriter.init(logDir, config)
+        ScreenLogFileWriter.configure(logDir, config.maxFileSizeMb, persistEnabled)
+        if (persistEnabled) initializeStorage(config, logDir)
         if (initialized.compareAndSet(false, true)) {
             config.application.registerActivityLifecycleCallbacks(activityCallbacks)
         }
@@ -119,6 +135,17 @@ object ScreenLogManager {
         ScreenLogFileWriter.clearAll()
     }
 
+    fun isPersistEnabled(): Boolean = isEnabled() && persistEnabled
+
+    fun setPersistEnabled(enabled: Boolean) {
+        val cfg = config?.takeIf { it.enable } ?: return
+        persistEnabled = enabled
+        preferences?.setPersistEnabled(enabled)
+        val dir = logDir(cfg)
+        ScreenLogFileWriter.configure(dir, cfg.maxFileSizeMb, enabled)
+        if (enabled) initializeStorage(cfg, dir)
+    }
+
     internal fun isPanelVisible(): Boolean = panelVisible
 
     internal fun setPanelVisible(visible: Boolean) {
@@ -154,6 +181,28 @@ object ScreenLogManager {
         if (!isEnabled()) return
         ScreenLogDispatcher.setRecordingEnabled(enabled)
         preferences?.setRecordingEnabled(enabled)
+    }
+
+    internal fun exportLogs(
+        contentResolver: ContentResolver,
+        uri: Uri,
+        onComplete: (Result<Unit>) -> Unit
+    ) {
+        val cfg = config
+        if (cfg == null || !cfg.enable) {
+            onComplete(Result.failure(IllegalStateException("ScreenLog 尚未初始化")))
+            return
+        }
+        val memoryEntries = ScreenLogDispatcher.snapshot()
+        storageExecutor.execute {
+            val result = ScreenLogExporter(logDir(cfg)).export(contentResolver, uri, memoryEntries)
+            mainHandler.post { onComplete(result) }
+        }
+    }
+
+    internal fun suggestedExportFileName(): String {
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        return "screen-log-$timestamp.zip"
     }
 
     fun toggleRecording() {
@@ -223,11 +272,12 @@ object ScreenLogManager {
         val fileInfo = files.joinToString(separator = "\n") { "${it.name}  ${it.length() / 1024} KB" }
         return buildString {
             appendLine("日志功能：${if (cfg.enable) "已启用" else "未启用"}")
-            appendLine("文件持久化：${if (cfg.enablePersist) "已启用" else "未启用"}")
+            appendLine("文件持久化：${if (persistEnabled) "已启用" else "未启用"}")
             appendLine("文件保留：${cfg.keepDays} 天")
             appendLine("单文件上限：${cfg.maxFileSizeMb} MB")
             appendLine("最低级别：${cfg.minLevel}")
             appendLine("内存日志：${ScreenLogDispatcher.snapshot().size} 条")
+            appendLine("文件目录：${logDir(cfg).absolutePath}")
             appendLine()
             append(if (fileInfo.isBlank()) "暂无日志文件" else fileInfo)
         }
@@ -364,8 +414,27 @@ object ScreenLogManager {
         ScreenLogDispatcher.setAutoScrollPaused(!autoScrollEnabled || autoScrollTemporarilyPaused)
     }
 
+    private fun initializeStorage(config: ScreenLogConfig, logDir: File) {
+        if (!storageInitialized.compareAndSet(false, true)) return
+        storageExecutor.execute {
+            if (!persistEnabled) {
+                storageInitialized.set(false)
+                return@execute
+            }
+            if (!logDir.exists()) logDir.mkdirs()
+            ScreenLogCleaner(logDir).clean(config.keepDays)
+            val historyEntries = ScreenLogFileReader(logDir).readRecent(config.keepDays)
+            if (persistEnabled) {
+                ScreenLogDispatcher.mergeHistory(historyEntries)
+            } else {
+                storageInitialized.set(false)
+            }
+        }
+    }
+
     private fun logDir(config: ScreenLogConfig): File {
-        return File(config.application.filesDir, "screen-log")
+        return config.application.getExternalFilesDir("screen-log")
+            ?: File(config.application.filesDir, "screen-log")
     }
 
     private fun Activity.dp(value: Int): Int {

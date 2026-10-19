@@ -2,9 +2,12 @@ package com.hexin.screenlog.ui
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
 import android.widget.Button
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.hexin.screenlog.R
 import com.hexin.screenlog.api.ScreenLogCopyOptions
@@ -28,6 +31,12 @@ class ScreenLogSettingsActivity : Activity(), ScreenLogDispatcher.Listener {
         }
         binding.screenLogRecording.setOnCheckedChangeListener { _, checked ->
             if (!suppressSwitchCallbacks) ScreenLogManager.setRecordingEnabled(checked)
+        }
+        binding.screenLogPersistence.setOnCheckedChangeListener { _, checked ->
+            if (!suppressSwitchCallbacks) {
+                ScreenLogManager.setPersistEnabled(checked)
+                refreshStorageSummary()
+            }
         }
         binding.screenLogAutoScroll.setOnCheckedChangeListener { _, checked ->
             if (!suppressSwitchCallbacks) ScreenLogManager.setAutoScrollEnabled(checked)
@@ -62,6 +71,16 @@ class ScreenLogSettingsActivity : Activity(), ScreenLogDispatcher.Listener {
                 }
                 .show()
         }
+        binding.screenLogExport.setOnClickListener {
+            startActivityForResult(
+                Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "application/zip"
+                    putExtra(Intent.EXTRA_TITLE, ScreenLogManager.suggestedExportFileName())
+                },
+                REQUEST_EXPORT_LOGS
+            )
+        }
     }
 
     override fun onStart() {
@@ -80,6 +99,25 @@ class ScreenLogSettingsActivity : Activity(), ScreenLogDispatcher.Listener {
         super.onStop()
     }
 
+    @Deprecated("Uses the platform Activity API to avoid requiring a host Activity dependency.")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_EXPORT_LOGS || resultCode != RESULT_OK) return
+        val uri = data?.data ?: return
+        ScreenLogManager.exportLogs(contentResolver, uri) { result ->
+            result.onSuccess {
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.screen_log_export_success_title)
+                    .setMessage(R.string.screen_log_export_success_message)
+                    .setNegativeButton(android.R.string.ok, null)
+                    .setPositiveButton(R.string.screen_log_open_export) { _, _ -> openExportedFile(uri) }
+                    .show()
+            }.onFailure {
+                Toast.makeText(this, R.string.screen_log_export_failed, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     override fun onLogsChanged() = Unit
 
     override fun onAutoScrollChanged(paused: Boolean) {
@@ -94,6 +132,7 @@ class ScreenLogSettingsActivity : Activity(), ScreenLogDispatcher.Listener {
         updateSwitches {
             binding.screenLogPanelVisible.isChecked = ScreenLogManager.isPanelVisible()
             binding.screenLogRecording.isChecked = ScreenLogManager.isRecordingEnabled()
+            binding.screenLogPersistence.isChecked = ScreenLogManager.isPersistEnabled()
             binding.screenLogAutoScroll.isChecked = ScreenLogManager.isAutoScrollEnabled()
             val copyOptions = ScreenLogManager.copyOptions()
             binding.screenLogCopyMessage.isChecked = true
@@ -129,6 +168,18 @@ class ScreenLogSettingsActivity : Activity(), ScreenLogDispatcher.Listener {
         )
     }
 
+    private fun openExportedFile(uri: android.net.Uri) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/zip")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, R.string.screen_log_open_export_failed, Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun updateSwitches(block: () -> Unit) {
         suppressSwitchCallbacks = true
         block()
@@ -148,5 +199,9 @@ class ScreenLogSettingsActivity : Activity(), ScreenLogDispatcher.Listener {
             this,
             if (selected) R.drawable.screen_log_segment_selected_bg else R.drawable.screen_log_page_button_bg
         )
+    }
+
+    private companion object {
+        const val REQUEST_EXPORT_LOGS = 1001
     }
 }

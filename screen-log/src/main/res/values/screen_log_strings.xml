@@ -33,6 +33,8 @@
     <string name="screen_log_panel_visible">显示日志面板</string>
     <string name="screen_log_panel_visible_hint">返回业务页面后生效；下次启动默认不显示</string>
     <string name="screen_log_recording">记录日志</string>
+    <string name="screen_log_persistence">保存日志到文件</string>
+    <string name="screen_log_persistence_hint">默认关闭；开启后优先保存到 App 外部存储</string>
     <string name="screen_log_auto_scroll">自动滚动</string>
     <string name="screen_log_touch_target">触摸目标</string>
     <string name="screen_log_touch_log_panel">日志面板</string>
@@ -43,4 +45,10 @@
     <string name="screen_log_copy_tag">Tag</string>
     <string name="screen_log_copy_thread">线程名</string>
     <string name="screen_log_copy_extras">附加信息</string>
+    <string name="screen_log_export_logs">导出日志</string>
+    <string name="screen_log_export_success_title">日志导出成功</string>
+    <string name="screen_log_export_success_message">文件已保存到刚才选择的位置，可以直接打开查看。</string>
+    <string name="screen_log_open_export">打开文件</string>
+    <string name="screen_log_export_failed">日志导出失败，请重新选择保存位置</string>
+    <string name="screen_log_open_export_failed">没有找到可打开 ZIP 文件的应用，请从刚才选择的位置查看</string>
 </resources>

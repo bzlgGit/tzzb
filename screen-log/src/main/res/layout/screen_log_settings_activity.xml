@@ -12,7 +12,7 @@
         android:layout_marginStart="16dp"
         android:contentDescription="@null"
         android:src="@drawable/screen_log_ic_settings"
-        android:tint="@color/screen_log_brand"
+        app:tint="@color/screen_log_brand"
         app:layout_constraintBottom_toBottomOf="@id/screenLogSettingsTitle"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@id/screenLogSettingsTitle" />
@@ -73,6 +73,17 @@
                     android:id="@+id/screenLogRecording"
                     style="@style/ScreenLogSettingsSwitch"
                     android:text="@string/screen_log_recording" />
+
+                <View style="@style/ScreenLogSettingsDivider" />
+
+                <Switch
+                    android:id="@+id/screenLogPersistence"
+                    style="@style/ScreenLogSettingsSwitch"
+                    android:text="@string/screen_log_persistence" />
+
+                <TextView
+                    style="@style/ScreenLogSettingsHint"
+                    android:text="@string/screen_log_persistence_hint" />
 
                 <View style="@style/ScreenLogSettingsDivider" />
 
@@ -190,6 +201,17 @@
                 android:padding="16dp"
                 android:textColor="@color/screen_log_page_text_secondary"
                 android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/screenLogExport"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/screen_log_page_button_bg"
+                android:gravity="center"
+                android:text="@string/screen_log_export_logs"
+                android:textAllCaps="false"
+                android:textColor="@color/screen_log_brand" />
 
             <Button
                 android:id="@+id/screenLogClearAll"

@@ -16,7 +16,7 @@
 
 - 不替代 `logcat` 或完整日志平台。
 - 不自动采集系统、网络或第三方 SDK 日志。
-- 不负责上传、分享、加密和脱敏。
+- 不负责上传、加密和脱敏；文件导出由测试人员通过系统文件选择器主动触发。
 - 不恢复跨进程的临时筛选、列表位置和多选状态。
 - 当前不面向多窗口并行展示。
 
@@ -44,6 +44,7 @@ screen-log/
 | Storage | `ScreenLogFileWriter` | 单线程异步写文件和单日容量限制 |
 | Storage | `ScreenLogFileReader` | 启动时读取近期日志 |
 | Storage | `ScreenLogCleaner` | 按文件日期清理过期日志 |
+| Storage | `ScreenLogExporter` | 将持久化文件与当前内存日志导出为 ZIP |
 | Filter | `ScreenLogFilterMatcher` | 等级、Tag、关键字组合筛选 |
 | UI | `ScreenLogFloatingView` | 可拖动悬浮入口与菜单容器 |
 | UI | `ScreenLogPanelView` | 列表、筛选、复制、双击变高和触摸模式 |
@@ -56,9 +57,9 @@ flowchart LR
     Business["业务代码"] -->|"ScreenLog.d/i/w/e"| Manager["ScreenLogManager"]
     Manager -->|"append"| Dispatcher["ScreenLogDispatcher<br/>有界内存队列"]
     Manager -->|"write"| Writer["ScreenLogFileWriter<br/>单线程后台队列"]
-    Writer --> Files["files/screen-log/<br/>按日 JSON Lines"]
-    Files -->|"init 时读取"| Reader["ScreenLogFileReader"]
-    Reader -->|"replace"| Dispatcher
+    Writer --> Files["外部 App 专属目录<br/>按日 JSON Lines"]
+    Files -->|"持久化开启时后台读取"| Reader["ScreenLogFileReader"]
+    Reader -->|"mergeHistory"| Dispatcher
     Dispatcher -->|"主线程通知"| Panel["ScreenLogPanelView"]
     Panel --> Filter["ScreenLogFilterMatcher"]
     Filter --> List["RecyclerView"]
@@ -72,13 +73,12 @@ flowchart LR
 
 `ScreenLogManager.init(config)` 依次执行：
 
-1. 保存配置；`enable=false` 时移除现有 UI、清理宿主引用并直接返回。
-2. `enable=true` 时从模块私有 `SharedPreferences` 恢复记录、自动滚动、触摸、复制和布局偏好；无已保存值时使用默认配置。
-3. 清理超出 `keepDays` 的历史文件。
-4. 配置内存日志上限。
-5. 读取近期日志文件并恢复到内存。
-6. 初始化后台文件写入器。
-7. 首次启用时注册 `ActivityLifecycleCallbacks`。
+1. 保存配置；首次以 `enable=false` 初始化时直接返回，不读取日志偏好、不触发存储操作。
+2. `enable=true` 时从模块私有 `SharedPreferences` 恢复记录、文件持久化、自动滚动、触摸、复制和布局偏好。
+3. 配置内存日志上限；记录默认关闭，文件持久化默认关闭。
+4. 文件持久化开启时，立即允许后续日志进入文件队列，并在后台清理过期文件、读取近期历史。
+5. 历史日志与冷启动期间已经进入内存的新日志合并，避免覆盖启动日志。
+6. 首次启用时注册 `ActivityLifecycleCallbacks`。
 
 `AtomicBoolean` 保证生命周期回调只注册一次。重复调用 `init()` 会更新配置、内存容量和文件写入器，但不会重复注册回调。
 
@@ -161,10 +161,11 @@ View 本身会持有创建它的 Activity Context，因此在 `onActivityPaused`
 
 `ScreenLogConfig.enable` 是最高优先级总开关。只有 `enable=true` 时，运行时“记录日志”Switch 才能改变记录状态。
 
-- 默认开启：新日志同时进入内存和文件队列。
+- 默认关闭：从未主动开启过的用户不会记录日志。
 - 手动关闭：保留已有日志和 UI，后续 `ScreenLog.*` 调用在创建日志条目前被忽略。
 - 再次开启：从开启时刻继续追加。
 - 状态在 Activity 切换间保持，并在进程重新初始化时恢复上次用户选择。
+- 文件持久化是独立开关且默认关闭；关闭时日志只保留在当前进程内存中。
 
 ### 触摸模式
 
@@ -186,8 +187,10 @@ View 本身会持有创建它的 Activity Context，因此在 `onActivityPaused`
 ### 路径和格式
 
 ```text
-<app files dir>/screen-log/screen_log_yyyy-MM-dd.log
+<external app files dir>/screen-log/screen_log_yyyy-MM-dd.log
 ```
+
+外部 App 专属目录不可用时回退到内部 `<app files dir>/screen-log/`。两种路径都不需要额外存储权限；设置页通过系统文件选择器导出 ZIP，避免依赖文件管理器直接访问 `Android/data`。
 
 文件采用 JSON Lines，每行独立反序列化。单行损坏时读取器会跳过该行，不影响其他日志。
 
@@ -197,7 +200,7 @@ View 本身会持有创建它的 Activity Context，因此在 `onActivityPaused`
 
 ### 保留和限流
 
-- 初始化时按文件名日期清理过期文件。
+- 文件持久化初始化时按文件名日期实际删除过期文件，而不是只在读取时过滤。
 - 读取按文件名排序后取最近 `keepDays` 个日志文件。
 - 单日文件达到 `maxFileSizeMb` 后停止当天后续落盘。
 - 文件操作由单线程 `ExecutorService` 串行执行，避免并发写入破坏行结构。
@@ -217,6 +220,7 @@ View 本身会持有创建它的 Activity Context，因此在 `onActivityPaused`
 | UI 监听通知 | `Handler(Looper.getMainLooper())` |
 | View 挂载和公开 UI 控制 | `runOnMain` 切主线程 |
 | 文件写入/清空 | 单线程 Executor |
+| 历史清理/恢复、ZIP 导出 | 独立单线程 Executor |
 | 格式化日期 | `ThreadLocal<SimpleDateFormat>` |
 
 监听器使用 `CopyOnWriteArrayList`，适合监听器数量少、通知频率高于增删频率的场景。
