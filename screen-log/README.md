@@ -113,7 +113,8 @@ class App : Application() {
                 keepDays = 1,
                 maxFileSizeMb = 10,
                 minLevel = ScreenLogLevel.DEBUG,
-                maxMemoryEntries = 1000
+                maxMemoryEntries = 1000,
+                hiddenRequestInterfaces = setOf("/api/large-data", "/api/frequent-poll")
             )
         )
     }
@@ -173,6 +174,9 @@ ScreenLog.d("WebView", "load url = $url", extras = mapOf("url" to url))
 ScreenLog.i("JSBridge", "call method = $methodName")
 ScreenLog.w("Network", "request retry", extras = mapOf("retry" to retryCount.toString()))
 ScreenLog.i("Network", responseJson, prettyJson = true)
+ScreenLog.request(api = "/api/orders", prettyJson = true) {
+    gson.fromJson(responseBody, LogPayload::class.java).toString()
+}
 ScreenLog.e(
     tag = "AccountDelete",
     message = "delete account failed",
@@ -183,7 +187,9 @@ ScreenLog.e(
 
 建议 Tag 使用稳定的业务域名称，例如 `Login`、`Network`、`WebView`、`JSBridge`、`Page`，不要把动态 ID 拼进 Tag。
 
-`prettyJson=true` 时，JSON Object 或 JSON Array 类型的 message 会以两空格缩进展示和复制；非法 JSON 保持原文。`extras` 位于最后一个参数，建议使用具名参数传入。
+`prettyJson=true` 时，JSON Object 或 JSON Array 类型的 message 会以两空格缩进展示和复制；非法 JSON 保持原文。普通日志方法的 `extras` 位于最后一个参数，建议使用具名参数传入。
+
+请求日志使用 `ScreenLog.request(api, ..., messageProvider)`，必须传入稳定的 API 标识。组件仅在总开关、录制开关、日志级别和该接口开关均允许时调用 `provide()`，并在日志附加信息中保存 API；其他日志方法不需要传 API。如果 `provide()` 抛出异常，组件会写入包含异常信息的 `Request` 错误日志。
 
 公开日志方法的参数顺序为：
 
@@ -204,12 +210,14 @@ ScreenLog.e(tag, message, throwable = null, prettyJson = false, extras = null)
 | `minLevel` | `DEBUG` | 低于该等级的日志直接忽略 |
 | `maxMemoryEntries` | `1000` | 内存最多保留条数，内部最低按 200 条处理；单条日志当前不截断 |
 | `copyOptions` | 仅复制 message | 首次运行时的复制字段默认值；用户在设置页修改后以已保存偏好为准 |
+| `hiddenRequestInterfaces` | 空集合 | 默认不记录的接口标识；使用不含动态参数的稳定路径 |
 
 ## 界面操作
 
 - 点击“日志”悬浮入口展开菜单。
 - `显示日志面板` Switch：显示或隐藏日志面板。
 - `记录日志` Switch：控制是否接收新日志，关闭后已有日志保持不变。
+- `接口日志`：默认配置和手动新增的接口统一管理，均可开启或关闭；只有手动新增的接口可删除。开关状态在重启后保留，删除后该接口按普通接口记录。
 - `保存日志到文件` Switch：默认关闭；开启后仅后续日志进入文件队列。
 - `自动滚动` Switch：控制列表是否跟随最新日志。
 - 面板默认占屏幕高度 `1/3`，双击面板切换到 `2/3`，再次双击恢复。
@@ -251,8 +259,19 @@ ScreenLogManager.setTouchMode(ScreenLogTouchMode.UNDERLYING_PAGE)
 | `pauseAutoScroll()` / `resumeAutoScroll()` | 控制列表自动跟随 |
 | `clearLogs()` | 清空内存日志和持久化文件 |
 | `ScreenLog.v/d/i/w/e(...)` | 写入对应等级的业务日志 |
+| `ScreenLog.request(api, ..., messageProvider)` | 按 API 开关决定是否调用 provider 并写入请求日志 |
 
 所有 UI 操作会切换到主线程执行；日志文件写入使用单线程后台队列。
+
+将仅用于日志的响应解析放进 provider，并用同一个稳定接口标识配置默认列表。例如：
+
+```kotlin
+ScreenLog.request(api = requestPath, prettyJson = true) {
+    gson.fromJson(responseBody, LogPayload::class.java).toString()
+}
+```
+
+provider 仅负责生成日志内容，不应改变业务响应的解析和处理；它在调用线程执行。若接入项目原有独立的接口日志黑名单，需要将请求日志生成位置改为调用 `ScreenLog.request`；组件无法恢复已经被外部丢弃的日志。
 
 ## 日志存储
 
@@ -265,6 +284,17 @@ ScreenLogManager.setTouchMode(ScreenLogTouchMode.UNDERLYING_PAGE)
 - 设置页“导出日志”会打开系统保存文件界面，导出 ZIP 到测试人员选择的位置；成功后可以直接打开文件。ZIP 同时包含已有持久化文件和当前内存日志。
 
 ## 接入验收
+
+示例 App 提供两个本地模拟接口 `/mock/large-response` 和 `/mock/frequent-poll`，都在初始化时默认屏蔽。手动验证步骤：
+
+1. 启动示例 App，在悬浮入口的设置页开启“记录日志”。
+2. 点击示例页的 `Test large response API` 和 `Test frequent poll API`；页面显示“未调用 provide”，日志面板没有对应的 `Request` 记录。默认接口只有开关，没有删除按钮。
+3. 在设置页的“接口日志”列表中开启其中一个接口，再点击对应按钮；页面显示“已记录请求日志”，日志面板出现带该 API 的 `Request` 记录。另一个接口仍被跳过。
+4. 关闭该接口开关并再次点击，确认停止新增记录。杀死并重启示例 App 后，接口开关状态仍应保留。
+
+5. 开启 `/mock/large-response` 后点击 `Test provider exception`，确认日志面板出现包含模拟异常及堆栈的 `Request` 错误日志；关闭该接口后再点击，确认 provider 不会执行。
+
+这两个接口仅用于本地验证，没有实际网络请求；示例页在 provider 中执行 `gson.fromJson`。
 
 建议至少验证以下场景：
 

@@ -47,6 +47,18 @@ object ScreenLogManager {
     private var touchMode = ScreenLogTouchMode.LOG_PANEL
     private var copyOptions = ScreenLogCopyOptions()
     private var preferences: ScreenLogPreferences? = null
+
+    private val requestInterfaceLock = Any()
+
+    @Volatile
+    private var requestInterfaces: Set<String> = emptySet()
+
+    private var defaultRequestInterfaces: Set<String> = emptySet()
+
+    @Volatile
+    private var enabledRequestInterfaces: Set<String> = emptySet()
+
+    private var addedRequestInterfaces: Set<String> = emptySet()
     private var autoScrollEnabled = true
     private var autoScrollTemporarilyPaused = false
     @Volatile
@@ -56,6 +68,11 @@ object ScreenLogManager {
     fun init(config: ScreenLogConfig) {
         this.config = config
         if (!config.enable) {
+            synchronized(requestInterfaceLock) {
+                requestInterfaces = emptySet()
+                enabledRequestInterfaces = emptySet()
+                defaultRequestInterfaces = emptySet()
+            }
             if (initialized.get()) {
                 ScreenLogDispatcher.setRecordingEnabled(false)
                 ScreenLogFileWriter.setEnabled(false)
@@ -64,6 +81,16 @@ object ScreenLogManager {
             return
         }
         preferences = ScreenLogPreferences(config.application).also { storedPreferences ->
+            synchronized(requestInterfaceLock) {
+                addedRequestInterfaces = storedPreferences.addedRequestInterfaces()
+                val defaults = config.hiddenRequestInterfaces
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .toSet()
+                defaultRequestInterfaces = defaults
+                requestInterfaces = defaults + addedRequestInterfaces
+                enabledRequestInterfaces = storedPreferences.enabledRequestInterfaces().intersect(requestInterfaces)
+            }
             touchMode = storedPreferences.touchMode(ScreenLogTouchMode.LOG_PANEL)
             copyOptions = storedPreferences.copyOptions(config.copyOptions)
             panelState.large = storedPreferences.panelExpanded(false)
@@ -181,6 +208,56 @@ object ScreenLogManager {
         if (!isEnabled()) return
         ScreenLogDispatcher.setRecordingEnabled(enabled)
         preferences?.setRecordingEnabled(enabled)
+    }
+
+    internal fun canRecordRequest(interfaceId: String, level: ScreenLogLevel): Boolean {
+        if (!isRecordingEnabled()) return false
+        val cfg = config ?: return false
+        if (level.ordinal < cfg.minLevel.ordinal) return false
+        val id = interfaceId.trim()
+        return id !in requestInterfaces || id in enabledRequestInterfaces
+    }
+
+    internal data class RequestInterfaceItem(val id: String, val enabled: Boolean, val isDefault: Boolean)
+
+    internal fun requestInterfaceItems(): List<RequestInterfaceItem> =
+        requestInterfaces.sorted().map { id ->
+            RequestInterfaceItem(id, id in enabledRequestInterfaces, id in defaultRequestInterfaces)
+        }
+
+    internal fun addRequestInterface(interfaceId: String): Boolean {
+        val id = interfaceId.trim()
+        if (id.isEmpty() || !isEnabled()) return false
+        synchronized(requestInterfaceLock) {
+            if (id in requestInterfaces) return false
+            addedRequestInterfaces = addedRequestInterfaces + id
+            requestInterfaces = requestInterfaces + id
+            saveRequestInterfaces()
+        }
+        return true
+    }
+
+    internal fun removeRequestInterface(interfaceId: String) {
+        synchronized(requestInterfaceLock) {
+            if (interfaceId !in addedRequestInterfaces || interfaceId in defaultRequestInterfaces) return
+            addedRequestInterfaces = addedRequestInterfaces - interfaceId
+            requestInterfaces = requestInterfaces - interfaceId
+            enabledRequestInterfaces = enabledRequestInterfaces - interfaceId
+            saveRequestInterfaces()
+        }
+    }
+
+    internal fun setRequestInterfaceEnabled(interfaceId: String, enabled: Boolean) {
+        synchronized(requestInterfaceLock) {
+            if (interfaceId !in requestInterfaces) return
+            enabledRequestInterfaces = if (enabled) enabledRequestInterfaces + interfaceId
+                else enabledRequestInterfaces - interfaceId
+            saveRequestInterfaces()
+        }
+    }
+
+    private fun saveRequestInterfaces() {
+        preferences?.setRequestInterfaces(addedRequestInterfaces, enabledRequestInterfaces)
     }
 
     internal fun exportLogs(

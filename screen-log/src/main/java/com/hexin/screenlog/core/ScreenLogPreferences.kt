@@ -81,6 +81,20 @@ internal class ScreenLogPreferences(context: Context) {
             .apply()
     }
 
+    fun addedRequestInterfaces(): Set<String> =
+        preferences.getStringSet(KEY_ADDED_REQUEST_INTERFACES, emptySet()).orEmpty().toSet()
+
+    fun enabledRequestInterfaces(): Set<String> =
+        preferences.getStringSet(KEY_ENABLED_REQUEST_INTERFACES, emptySet()).orEmpty().toSet()
+
+    fun setRequestInterfaces(added: Set<String>, enabled: Set<String>) {
+        preferences.edit()
+            .putStringSet(KEY_ADDED_REQUEST_INTERFACES, added.toSet())
+            .remove(KEY_REMOVED_REQUEST_INTERFACES)
+            .putStringSet(KEY_ENABLED_REQUEST_INTERFACES, enabled.toSet())
+            .apply()
+    }
+
     private companion object {
         const val PREFERENCE_NAME = "screen_log_preferences"
         const val KEY_RECORDING_ENABLED = "recording_enabled"
@@ -95,5 +109,8 @@ internal class ScreenLogPreferences(context: Context) {
         const val KEY_PANEL_EXPANDED = "panel_expanded"
         const val KEY_FLOATING_X = "floating_x"
         const val KEY_FLOATING_Y = "floating_y"
+        const val KEY_ADDED_REQUEST_INTERFACES = "added_request_interfaces"
+        const val KEY_REMOVED_REQUEST_INTERFACES = "removed_request_interfaces"
+        const val KEY_ENABLED_REQUEST_INTERFACES = "enabled_request_interfaces"
     }
 }

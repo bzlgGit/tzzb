@@ -6,7 +6,12 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
+import android.view.Gravity
 import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.Switch
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.hexin.screenlog.R
@@ -68,6 +73,24 @@ class ScreenLogSettingsActivity : Activity(), ScreenLogDispatcher.Listener {
                 .setPositiveButton(R.string.screen_log_clear) { _, _ ->
                     ScreenLogManager.clearLogs()
                     refreshStorageSummary()
+                }
+                .show()
+        }
+        binding.screenLogAddRequestInterface.setOnClickListener {
+            val input = EditText(this).apply {
+                hint = getString(R.string.screen_log_request_interface_hint)
+                setSingleLine(true)
+            }
+            AlertDialog.Builder(this)
+                .setTitle(R.string.screen_log_add_request_interface)
+                .setView(input)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.screen_log_add_request_interface) { _, _ ->
+                    if (ScreenLogManager.addRequestInterface(input.text.toString())) {
+                        refreshRequestInterfaces()
+                    } else {
+                        Toast.makeText(this, R.string.screen_log_request_interface_exists, Toast.LENGTH_SHORT).show()
+                    }
                 }
                 .show()
         }
@@ -143,7 +166,48 @@ class ScreenLogSettingsActivity : Activity(), ScreenLogDispatcher.Listener {
             binding.screenLogCopyExtras.isChecked = copyOptions.includeExtras
         }
         refreshTouchMode()
+        refreshRequestInterfaces()
         refreshStorageSummary()
+    }
+
+    private fun refreshRequestInterfaces() {
+        val container = binding.screenLogRequestInterfaceList
+        container.removeAllViews()
+        val items = ScreenLogManager.requestInterfaceItems()
+        if (items.isEmpty()) {
+            container.addView(TextView(this).apply {
+                setText(R.string.screen_log_request_interface_empty)
+            })
+        }
+        items.forEach { (id, enabled, isDefault) ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            row.addView(TextView(this).apply {
+                text = id
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setTextColor(ContextCompat.getColor(this@ScreenLogSettingsActivity, R.color.screen_log_page_text_primary))
+                textSize = 15f
+            })
+            if (!isDefault) {
+                row.addView(Button(this).apply {
+                    setText(R.string.screen_log_delete_request_interface)
+                    setOnClickListener {
+                        ScreenLogManager.removeRequestInterface(id)
+                        refreshRequestInterfaces()
+                    }
+                })
+            }
+            row.addView(Switch(this).apply {
+                isChecked = enabled
+                contentDescription = id
+                setOnCheckedChangeListener { _, checked ->
+                    ScreenLogManager.setRequestInterfaceEnabled(id, checked)
+                }
+            })
+            container.addView(row)
+        }
     }
 
     private fun refreshTouchMode() {

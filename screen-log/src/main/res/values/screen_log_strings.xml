@@ -30,6 +30,13 @@
     <string name="screen_log_settings_interaction">交互设置</string>
     <string name="screen_log_settings_copy">复制内容</string>
     <string name="screen_log_settings_storage">存储与信息</string>
+    <string name="screen_log_request_interfaces">接口日志</string>
+    <string name="screen_log_request_interfaces_hint">列表中的接口默认不记录。开启后可记录，重启后仍生效；只有手动新增的接口可以删除。</string>
+    <string name="screen_log_add_request_interface">新增接口</string>
+    <string name="screen_log_request_interface_hint">接口标识（如 /api/example）</string>
+    <string name="screen_log_request_interface_exists">接口已在列表中或输入为空</string>
+    <string name="screen_log_request_interface_empty">暂无单独管理的接口</string>
+    <string name="screen_log_delete_request_interface">删除</string>
     <string name="screen_log_panel_visible">显示日志面板</string>
     <string name="screen_log_panel_visible_hint">返回业务页面后生效；下次启动默认不显示</string>
     <string name="screen_log_recording">记录日志</string>

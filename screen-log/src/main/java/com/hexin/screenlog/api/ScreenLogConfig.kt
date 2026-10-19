@@ -10,5 +10,6 @@ data class ScreenLogConfig(
     val maxFileSizeMb: Int = 10,
     val minLevel: ScreenLogLevel = ScreenLogLevel.DEBUG,
     val maxMemoryEntries: Int = 1000,
-    val copyOptions: ScreenLogCopyOptions = ScreenLogCopyOptions()
+    val copyOptions: ScreenLogCopyOptions = ScreenLogCopyOptions(),
+    val hiddenRequestInterfaces: Set<String> = emptySet()
 )

@@ -190,6 +190,32 @@
 
             <TextView
                 style="@style/ScreenLogSettingsSectionTitle"
+                android:text="@string/screen_log_request_interfaces" />
+
+            <LinearLayout
+                style="@style/ScreenLogSettingsCard"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/ScreenLogSettingsHint"
+                    android:text="@string/screen_log_request_interfaces_hint" />
+
+                <LinearLayout
+                    android:id="@+id/screenLogRequestInterfaceList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <Button
+                    android:id="@+id/screenLogAddRequestInterface"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="@string/screen_log_add_request_interface"
+                    android:textAllCaps="false" />
+            </LinearLayout>
+
+            <TextView
+                style="@style/ScreenLogSettingsSectionTitle"
                 android:text="@string/screen_log_settings_storage" />
 
             <TextView
