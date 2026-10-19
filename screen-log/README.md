@@ -31,10 +31,10 @@
 .\gradlew.bat :screen-log:exportReleaseAar
 ```
 
-默认版本来自根目录 `gradle.properties` 中的 `screenLogVersion=1.0.0_SNAPSHOT`。在确认版本上线前，版本号统一保留 `_SNAPSHOT` 后缀，产物路径为：
+默认版本来自根目录 `gradle.properties` 中的 `screenLogVersion=1.0.1_SNAPSHOT`。在确认版本上线前，版本号统一保留 `_SNAPSHOT` 后缀，产物路径为：
 
 ```text
-artifacts/screen-log-1.0.0_SNAPSHOT.aar
+artifacts/screen-log-1.0.1_SNAPSHOT.aar
 ```
 
 确认上线后，可以直接通过命令行传入正式版本号，不需要修改构建脚本：
@@ -51,7 +51,7 @@ artifacts/screen-log-1.0.0_SNAPSHOT.aar
 
 ```kotlin
 dependencies {
-    implementation(files("libs/screen-log-1.0.0_SNAPSHOT.aar"))
+    implementation(files("libs/screen-log-1.0.1_SNAPSHOT.aar"))
 
     implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")

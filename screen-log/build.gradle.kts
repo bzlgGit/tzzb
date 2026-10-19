@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
 }
 
-val screenLogVersion = providers.gradleProperty("screenLogVersion").orElse("1.0.0_SNAPSHOT")
+val screenLogVersion = providers.gradleProperty("screenLogVersion").orElse("1.0.1_SNAPSHOT")
 
 android {
     namespace = "com.hexin.screenlog"
