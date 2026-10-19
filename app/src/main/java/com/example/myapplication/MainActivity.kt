@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -11,8 +12,7 @@ import androidx.constraintlayout.widget.ConstraintSet
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.hexin.screenlog.api.ScreenLog
-import com.hexin.screenlog.api.ScreenLogConfig
-import com.hexin.screenlog.api.ScreenLogManager
+import com.hexin.screenlog.api.ScreenLogKit
 
 class MainActivity : Activity() {
     private var testLogIndex = 0
@@ -20,14 +20,6 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ScreenLogManager.init(
-            ScreenLogConfig(
-                application = application,
-                enable = true,
-                hiddenRequestInterfaces = setOf(LARGE_RESPONSE_API, FREQUENT_POLL_API)
-            )
-        )
-        ScreenLogManager.showFloatingEntry()
         ScreenLog.d("MainActivity", "screen log module initialized")
         ScreenLog.i(
             "WebView",
@@ -43,12 +35,6 @@ class MainActivity : Activity() {
         setContentView(createTestEntryView())
     }
 
-    override fun onResume() {
-        super.onResume()
-        ScreenLogManager.attachTo(this)
-        ScreenLogManager.showFloatingEntry()
-    }
-
     private fun createTestEntryView(): View {
         val root = ConstraintLayout(this).apply {
             id = View.generateViewId()
@@ -61,12 +47,20 @@ class MainActivity : Activity() {
         }
         val requestStatus = TextView(this).apply {
             id = View.generateViewId()
-            text = "请求日志测试：先在设置中开启“记录日志”"
+            text = "请求日志测试：先点击开启，再切换接口开关"
         }
         val buttons = listOf(
-            button("Show floating entry") { ScreenLogManager.showFloatingEntry() },
-            button("Hide floating entry") { ScreenLogManager.hideFloatingEntry() },
-            button("Show panel") { ScreenLogManager.showPanel() },
+            button("Open screen log") {
+                ScreenLogKit.open(this)
+                requestStatus.text = "日志已开启，可从悬浮入口进入设置"
+            },
+            button("Close screen log") {
+                ScreenLogKit.close()
+                requestStatus.text = "日志已关闭"
+            },
+            button("Open second page") {
+                startActivity(Intent(this, SecondPageActivity::class.java))
+            },
             button("Add one test log") {
                 testLogIndex += 1
                 appendTestLog(testLogIndex)
@@ -86,9 +80,6 @@ class MainActivity : Activity() {
             button("Test provider exception") {
                 appendFailingRequestLog(LARGE_RESPONSE_API, requestStatus)
             },
-            button("Pause auto scroll") { ScreenLogManager.pauseAutoScroll() },
-            button("Resume auto scroll") { ScreenLogManager.resumeAutoScroll() },
-            button("Clear logs") { ScreenLogManager.clearLogs() }
         )
 
         root.addView(title)

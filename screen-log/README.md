@@ -95,77 +95,33 @@ dependencies {
 
 ### 2. 初始化
 
-建议在 `Application.onCreate()` 最前面初始化一次。暗码验证和测试资格由接入 App 负责持久化；`enable=false` 代表当前用户没有测试资格，此路径不会读取或创建日志文件：
+在 `Application.onCreate()` 中初始化一次。接入 App 自行控制测试入口的可见性和使用资格：
 
 ```kotlin
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        val internalTesterAuthorized = getSharedPreferences("internal_debug", MODE_PRIVATE)
-            .getBoolean("screen_log_authorized", false)
-
-        ScreenLogManager.init(
-            ScreenLogConfig(
-                application = this,
-                enable = internalTesterAuthorized,
-                enablePersist = false,
-                keepDays = 1,
-                maxFileSizeMb = 10,
-                minLevel = ScreenLogLevel.DEBUG,
-                maxMemoryEntries = 1000,
-                hiddenRequestInterfaces = setOf("/api/large-data", "/api/frequent-poll")
-            )
+        ScreenLogKit.init(
+            application = this,
+            hiddenRequestInterfaces = setOf("/api/large-data", "/api/frequent-poll")
         )
     }
 }
 ```
 
-`enable=false` 是测试资格总开关：首次初始化时直接返回，不读取日志偏好、不扫描文件，也不启动存储后台任务；同时忽略后续显示和记录调用。
+全新安装首次初始化时，“记录日志”默认关闭，也不显示日志入口。测试人员首次调用 `open(activity)` 后会持久化录制状态；下次冷启动时，`ScreenLogKit.init` 会恢复录制，因此可记录初始化之后的启动日志。文件持久化独立控制且默认关闭。
 
-当 `enable=true` 时，“记录日志”默认关闭。测试人员主动开启后会持久化该状态；下次冷启动只要接入 App 仍传入 `enable=true`，即可从 `Application.onCreate()` 之后立即记录启动日志。文件持久化独立控制且默认关闭。
+### 3. 测试入口的开启和关闭
 
-暗码验证成功后，接入 App 应先保存测试资格，再重新初始化并开启记录：
-
-```kotlin
-getSharedPreferences("internal_debug", MODE_PRIVATE)
-    .edit()
-    .putBoolean("screen_log_authorized", true)
-    .apply()
-
-ScreenLogManager.init(ScreenLogConfig(application, enable = true))
-ScreenLogManager.setRecordingEnabled(true)
-ScreenLogManager.attachTo(this)
-ScreenLogManager.showFloatingEntry()
-ScreenLogManager.showPanel()
-```
-
-### 3. 绑定页面并显示入口
-
-组件会监听 Activity 生命周期。为了确保首次进入页面时立即绑定，建议在需要展示屏幕日志的 Activity 中显式调用：
+在测试入口的按钮或暗码验证成功回调中调用：
 
 ```kotlin
-override fun onResume() {
-    super.onResume()
-    if (BuildConfig.DEBUG) {
-        ScreenLogManager.attachTo(this)
-        ScreenLogManager.showFloatingEntry()
-    }
-}
+ScreenLogKit.open(this)  // 开启录制并显示悬浮入口
+ScreenLogKit.close()     // 停止录制并隐藏悬浮入口和面板
 ```
 
-隐藏入口：
-
-```kotlin
-ScreenLogManager.hideFloatingEntry()
-```
-
-也可以跳过悬浮入口，直接显示日志面板：
-
-```kotlin
-ScreenLogManager.attachTo(this)
-ScreenLogManager.showPanel()
-```
+`open` 不重置已保存的接口开关、文件保存或其他设置。`close` 不清空已有日志。重启后如果录制状态为开启，组件会同时恢复悬浮入口；日志面板由测试人员从悬浮入口打开。
 
 ### 4. 写入业务日志
 
@@ -198,23 +154,21 @@ ScreenLog.v/d/i/w(tag, message, prettyJson = false, extras = null)
 ScreenLog.e(tag, message, throwable = null, prettyJson = false, extras = null)
 ```
 
-## 配置说明
+## 初始化参数与内部默认值
 
 | 参数 | 默认值 | 说明 |
 | --- | --- | --- |
-| `application` | 必填 | 仅持有 Application，用于生命周期监听和日志目录定位 |
-| `enable` | 必填 | 模块总开关；关闭后停止写入、移除 UI 并忽略后续显示调用 |
-| `enablePersist` | `false` | 首次启用时的文件持久化默认值；之后以设置页保存的开关为准 |
-| `keepDays` | `1` | 实际保留天数；存储初始化时会删除过期文件，最少按 1 天处理 |
-| `maxFileSizeMb` | `10` | 单日文件上限，达到后当天新日志停止落盘 |
-| `minLevel` | `DEBUG` | 低于该等级的日志直接忽略 |
-| `maxMemoryEntries` | `1000` | 内存最多保留条数，内部最低按 200 条处理；单条日志当前不截断 |
-| `copyOptions` | 仅复制 message | 首次运行时的复制字段默认值；用户在设置页修改后以已保存偏好为准 |
+| `application` | 必填 | 用于生命周期监听和日志目录定位 |
 | `hiddenRequestInterfaces` | 空集合 | 默认不记录的接口标识；使用不含动态参数的稳定路径 |
+| 文件保存 | 关闭 | 测试人员可在设置页开启；开启后保留 1 天，单日文件上限 10 MB |
+| 最低级别 | `DEBUG` | 低于该等级的日志直接忽略 |
+| 内存容量 | 1000 条 | 超出后淘汰最早的日志 |
+| 复制字段 | 仅 message | 测试人员可在设置页调整 |
 
 ## 界面操作
 
 - 点击“日志”悬浮入口展开菜单。
+- 悬浮菜单中的“关闭屏幕日志”会停止录制并隐藏入口和面板；下次启动保持关闭。需要再次开启时使用接入方的测试入口。
 - `显示日志面板` Switch：显示或隐藏日志面板。
 - `记录日志` Switch：控制是否接收新日志，关闭后已有日志保持不变。
 - `接口日志`：默认配置和手动新增的接口统一管理，均可开启或关闭；只有手动新增的接口可删除。开关状态在重启后保留，删除后该接口按普通接口记录。
@@ -228,14 +182,9 @@ ScreenLog.e(tag, message, throwable = null, prettyJson = false, extras = null)
 - 悬浮入口支持拖动并自动吸附左右边缘。
 - `设置` 按“运行控制、交互设置、复制内容、存储与信息”分类，可修改记录、文件持久化、自动滚动、触摸目标和复制字段，也可导出或清空日志。
 
-切换 Activity 时，组件会重新挂载 View。记录开关、自动滚动、触摸目标、复制字段、面板高度和悬浮入口位置会保存到模块私有 `SharedPreferences`；筛选条件、列表位置、多选状态和面板是否显示仅在当前进程或会话中保留。应用重新启动后面板默认不显示，但只要“记录日志”保持开启，启动日志仍会进入内存和文件，之后打开面板即可查看。
+切换 Activity 时，组件会重新挂载 View。记录开关、接口开关、自动滚动、触摸目标、复制字段、面板高度和悬浮入口位置会保存到模块私有 `SharedPreferences`；筛选条件、列表位置、多选状态和面板是否显示仅在当前进程或会话中保留。应用重新启动后若录制状态为开启，悬浮入口会自动显示，面板仍默认关闭；启动日志会进入内存，如已开启文件保存，也会写入文件。
 
 ## 触摸模式
-
-```kotlin
-ScreenLogManager.setTouchMode(ScreenLogTouchMode.LOG_PANEL)
-ScreenLogManager.setTouchMode(ScreenLogTouchMode.UNDERLYING_PAGE)
-```
 
 | 模式 | 行为 |
 | --- | --- |
@@ -248,16 +197,9 @@ ScreenLogManager.setTouchMode(ScreenLogTouchMode.UNDERLYING_PAGE)
 
 | API | 用途 |
 | --- | --- |
-| `ScreenLogManager.init(config)` | 初始化模块 |
-| `ScreenLogManager.attachTo(activity)` | 显式绑定当前 Activity |
-| `showFloatingEntry()` / `hideFloatingEntry()` | 显示或隐藏悬浮入口 |
-| `showPanel()` / `hidePanel()` | 显示或隐藏日志面板 |
-| `setTouchMode(mode)` / `toggleTouchMode()` | 设置触摸目标 |
-| `setRecordingEnabled(enabled)` / `toggleRecording()` | 运行时开始或停止接收新日志 |
-| `isRecordingEnabled()` | 查询当前是否正在记录日志 |
-| `setPersistEnabled(enabled)` / `isPersistEnabled()` | 设置或查询文件持久化状态 |
-| `pauseAutoScroll()` / `resumeAutoScroll()` | 控制列表自动跟随 |
-| `clearLogs()` | 清空内存日志和持久化文件 |
+| `ScreenLogKit.init(application, hiddenRequestInterfaces)` | 在 Application 中初始化一次，恢复已保存的录制和接口状态 |
+| `ScreenLogKit.open(activity)` | 开启录制并显示悬浮入口 |
+| `ScreenLogKit.close()` | 停止录制并隐藏悬浮入口和面板 |
 | `ScreenLog.v/d/i/w/e(...)` | 写入对应等级的业务日志 |
 | `ScreenLog.request(api, ..., messageProvider)` | 按 API 开关决定是否调用 provider 并写入请求日志 |
 
@@ -287,10 +229,12 @@ provider 仅负责生成日志内容，不应改变业务响应的解析和处�
 
 示例 App 提供两个本地模拟接口 `/mock/large-response` 和 `/mock/frequent-poll`，都在初始化时默认屏蔽。手动验证步骤：
 
-1. 启动示例 App，在悬浮入口的设置页开启“记录日志”。
+跨页面验证：点击 `Open screen log`，再点击 `Open second page` 进入独立 Activity；确认“日志”悬浮入口仍显示，点击它并开启“显示日志面板”，再点击 `Add log from second page` 查看新日志。点击 `Back to main page`，确认悬浮入口和日志面板仍可操作。
+
+1. 启动示例 App，点击 `Open screen log`；可从悬浮入口进入设置页。
 2. 点击示例页的 `Test large response API` 和 `Test frequent poll API`；页面显示“未调用 provide”，日志面板没有对应的 `Request` 记录。默认接口只有开关，没有删除按钮。
 3. 在设置页的“接口日志”列表中开启其中一个接口，再点击对应按钮；页面显示“已记录请求日志”，日志面板出现带该 API 的 `Request` 记录。另一个接口仍被跳过。
-4. 关闭该接口开关并再次点击，确认停止新增记录。杀死并重启示例 App 后，接口开关状态仍应保留。
+4. 关闭该接口开关并再次点击，确认停止新增记录。点击 `Close screen log` 后所有 provider 均不执行；重新开启后接口开关状态保持不变。保持开启状态杀死并重启示例 App，确认录制、接口开关和悬浮入口都自动恢复。
 
 5. 开启 `/mock/large-response` 后点击 `Test provider exception`，确认日志面板出现包含模拟异常及堆栈的 `Request` 错误日志；关闭该接口后再点击，确认 provider 不会执行。
 
@@ -306,23 +250,23 @@ provider 仅负责生成日志内容，不应改变业务响应的解析和处�
 6. 关闭“记录日志”后列表数量不再增长，重新开启后继续追加。
 7. 进程重启后能读取保留期内的持久化日志。
 8. 达到单日文件上限后应用不崩溃，内存日志仍正常工作。
-9. `enable=false` 时显示 API 和记录 API 均不生效。
+9. 未调用 `ScreenLogKit.init` 时，开启和写日志均不生效。
 
 ## 常见问题
 
-### 调用 `showPanel()` 后没有显示
+### 点击开启后没有显示悬浮入口
 
-先确认已经初始化，并在当前 Activity `onResume()` 中调用过：
+先确认已在 `Application` 初始化，并在当前 Activity 调用：
 
 ```kotlin
-ScreenLogManager.attachTo(this)
+ScreenLogKit.open(this)
 ```
 
 面板挂载到当前 Activity 的 `android.R.id.content`，不需要申请 `SYSTEM_ALERT_WINDOW`。
 
 ### 日志没有写入
 
-检查 `enable`、`minLevel` 和调用时机。`init()` 之前写入的日志不会补录。
+检查是否已初始化、录制开关和调用时机。`init()` 之前写入的日志不会补录。
 
 ### 是否可以记录账号、Token 或完整请求体
 
@@ -338,4 +282,4 @@ ScreenLogManager.attachTo(this)
 - 不抓包、不上传日志。
 - 内部使用，不提供日志脱敏或加密。
 - 不保证多窗口/多前台 Activity 场景下的独立面板状态。
-- 暗码验证和测试资格持久化由接入 App 负责，组件只消费 `ScreenLogConfig.enable` 的结果。
+- 暗码验证和测试资格控制由接入 App 负责；组件只在业务方调用 `open(activity)` 时显示入口。

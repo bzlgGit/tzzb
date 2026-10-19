@@ -2,7 +2,7 @@ package com.hexin.screenlog.api
 
 import android.app.Application
 
-data class ScreenLogConfig(
+internal data class ScreenLogConfig(
     val application: Application,
     val enable: Boolean,
     val enablePersist: Boolean = false,

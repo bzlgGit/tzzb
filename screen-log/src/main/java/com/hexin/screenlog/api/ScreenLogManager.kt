@@ -28,7 +28,7 @@ import java.util.Locale
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
-object ScreenLogManager {
+internal object ScreenLogManager {
 
     private const val TAG = "ScreenLogManager"
 

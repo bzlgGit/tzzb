@@ -10,11 +10,12 @@ import android.widget.Switch
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.hexin.screenlog.R
+import com.hexin.screenlog.api.ScreenLogKit
 import com.hexin.screenlog.api.ScreenLogManager
 import com.hexin.screenlog.api.ScreenLogTouchMode
 import com.hexin.screenlog.core.ScreenLogDispatcher
 
-class ScreenLogMenuView(context: Context) : LinearLayout(context), ScreenLogDispatcher.Listener {
+internal class ScreenLogMenuView(context: Context) : LinearLayout(context), ScreenLogDispatcher.Listener {
 
     private val panelSwitch = menuSwitch(R.string.screen_log_panel_visible)
     private val recordingSwitch = menuSwitch(R.string.screen_log_recording)
@@ -47,6 +48,9 @@ class ScreenLogMenuView(context: Context) : LinearLayout(context), ScreenLogDisp
         })
         addView(menuItem(R.string.screen_log_settings, R.drawable.screen_log_ic_settings).apply {
             setOnClickListener { ScreenLogManager.openSettings() }
+        })
+        addView(menuItem(R.string.screen_log_close, R.drawable.screen_log_ic_close).apply {
+            setOnClickListener { ScreenLogKit.close() }
         })
         addView(menuItem(R.string.screen_log_collapse, R.drawable.screen_log_ic_expand).apply {
             setOnClickListener { this@ScreenLogMenuView.visibility = View.GONE }

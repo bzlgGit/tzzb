@@ -35,8 +35,9 @@ screen-log/
 | 分层 | 核心类型 | 职责 |
 | --- | --- | --- |
 | API | `ScreenLog` | 提供 `v/d/i/w/e` 业务写入入口 |
-| API | `ScreenLogConfig` | 定义总开关、持久化、保留期、等级和容量 |
-| API | `ScreenLogManager` | 模块编排、Activity 生命周期、View 挂载和公开控制 API |
+| API | `ScreenLogKit` | 对接入方提供初始化、开启和关闭入口 |
+| API | `ScreenLogConfig` | 组件内部定义总开关、持久化、保留期、等级和容量 |
+| API | `ScreenLogManager` | 组件内部编排 Activity 生命周期、View 挂载和状态 |
 | Core | `ScreenLogEntry` | 单条日志的数据模型 |
 | Core | `ScreenLogDispatcher` | 有界内存日志、监听通知、自动滚动状态 |
 | Core | `ScreenLogPreferences` | 集中读写用户可配置偏好及默认值 |
@@ -230,12 +231,11 @@ View 本身会持有创建它的 Activity Context，因此在 `onActivityPaused`
 对接入方稳定暴露：
 
 - `ScreenLog`
-- `ScreenLogConfig`
+- `ScreenLogKit`
 - `ScreenLogLevel`
-- `ScreenLogTouchMode`
-- `ScreenLogManager` 的 public 方法
+- `RequestLogMessageProvider`
 
-UI View 和 `ScreenLogPanelState` 为模块内部实现，不应由业务代码直接创建或持有。`core`、`storage`、`filter` 当前在源码层部分类型仍为 public，但方案上不建议作为接入 API 使用；后续发布二进制 SDK 前可进一步收紧可见性。
+`ScreenLogManager`、`ScreenLogConfig`、`ScreenLogTouchMode`、`ScreenLogCopyOptions` 和 UI View 为模块内部实现，不应由业务代码直接创建或持有。`core`、`storage`、`filter` 当前在源码层部分类型仍为 public，但方案上不建议作为接入 API 使用；后续发布二进制 SDK 前可进一步收紧可见性。
 
 ## 10. 使用边界
 

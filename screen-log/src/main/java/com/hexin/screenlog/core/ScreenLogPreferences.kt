@@ -15,7 +15,7 @@ internal class ScreenLogPreferences(context: Context) {
         preferences.getBoolean(KEY_RECORDING_ENABLED, defaultValue)
 
     fun setRecordingEnabled(enabled: Boolean) {
-        preferences.edit().putBoolean(KEY_RECORDING_ENABLED, enabled).apply()
+        preferences.edit().putBoolean(KEY_RECORDING_ENABLED, enabled).commit()
     }
 
     fun persistEnabled(defaultValue: Boolean): Boolean =

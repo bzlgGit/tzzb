@@ -33,7 +33,7 @@ object ScreenLogFormatter {
         }
     }
 
-    fun formatForCopy(entry: ScreenLogEntry, options: ScreenLogCopyOptions): String {
+    internal fun formatForCopy(entry: ScreenLogEntry, options: ScreenLogCopyOptions): String {
         return buildString {
             if (options.includeTime) appendField(formatTime(entry.timeMillis))
             if (options.includeLevel) appendField(entry.level.name)

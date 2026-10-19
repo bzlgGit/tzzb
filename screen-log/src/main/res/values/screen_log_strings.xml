@@ -20,6 +20,7 @@
     </plurals>
     <string name="screen_log_clear">清空</string>
     <string name="screen_log_clear_logs">清空日志</string>
+    <string name="screen_log_close">关闭屏幕日志</string>
     <string name="screen_log_collapse">收起菜单</string>
     <string name="screen_log_clear_confirm_title">清空全部日志？</string>
     <string name="screen_log_clear_confirm_message">内存日志和已保存的日志文件都会被删除。</string>
