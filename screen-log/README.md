@@ -32,16 +32,16 @@
 .\gradlew.bat :screen-log:exportReleaseAar
 ```
 
-默认版本来自根目录 `gradle.properties` 中的 `screenLogVersion=1.0.4_SNAPSHOT`。每次交付包含新改动的 AAR 都必须递增版本号，不得沿用旧版本号覆盖交付；同步更新构建脚本的默认版本和本文接入示例。在确认版本上线前，版本号统一保留 `_SNAPSHOT` 后缀，产物路径为：
+默认版本来自根目录 `gradle.properties` 中的 `screenLogVersion=1.0.5_SNAPSHOT`。每次交付包含新改动的 AAR 都必须递增版本号，不得沿用旧版本号覆盖交付；同步更新构建脚本的默认版本和本文接入示例。在确认版本上线前，版本号统一保留 `_SNAPSHOT` 后缀，产物路径为：
 
 ```text
-artifacts/screen-log-1.0.4_SNAPSHOT.aar
+artifacts/screen-log-1.0.5_SNAPSHOT.aar
 ```
 
 确认上线后，可以直接通过命令行传入正式版本号，不需要修改构建脚本：
 
 ```powershell
-.\gradlew.bat :screen-log:exportReleaseAar -PscreenLogVersion=1.0.4
+.\gradlew.bat :screen-log:exportReleaseAar -PscreenLogVersion=1.0.5
 ```
 
 `artifacts/` 已加入 `.gitignore`，生成的二进制文件不会被误提交。
@@ -52,7 +52,7 @@ artifacts/screen-log-1.0.4_SNAPSHOT.aar
 
 ```kotlin
 dependencies {
-    implementation(files("libs/screen-log-1.0.4_SNAPSHOT.aar"))
+    implementation(files("libs/screen-log-1.0.5_SNAPSHOT.aar"))
 
     implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
@@ -287,7 +287,7 @@ ScreenLogKit.open(this)
 
 若宿主会遍历 `android.R.id.content` 的子 ViewGroup 并统一调用 `setFitsSystemWindows(true)`，组件的悬浮入口和日志面板会忽略此设置，避免全屏时顶部操作区域因状态栏适配产生触摸偏移。
 
-示例 App 的 `Test status bar compatibility` 按钮会执行同样的遍历与设置，并检查日志浮层是否保持 `fitsSystemWindows=false`。验证时先开启日志面板，再点击这个测试按钮，确认提示验证到 2 个浮层；随后点“全屏”，分别点击“收起”按钮的上半部和下半部，均应恢复原尺寸。示例只模拟截图中的这段状态栏处理，业务 App 仍需替换 AAR 做最终触摸验收。
+示例 App 的 `Test status bar compatibility` 按钮会启用状态栏下布局，执行同样的遍历与设置，并检查日志浮层是否保持 `fitsSystemWindows=false`。验证时先开启日志面板，再点击这个测试按钮，确认提示验证到 2 个浮层；随后点“全屏”，分别点击“收起”按钮的上半部和下半部，均应恢复原尺寸。全屏日志面板会避开状态栏；内容原本已在状态栏下方时不会重复留白。业务 App 仍需替换 AAR 做最终触摸验收。
 
 ### 日志没有写入
 

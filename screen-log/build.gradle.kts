@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
 }
 
-val screenLogVersion = providers.gradleProperty("screenLogVersion").orElse("1.0.4_SNAPSHOT")
+val screenLogVersion = providers.gradleProperty("screenLogVersion").orElse("1.0.5_SNAPSHOT")
 
 // Keep the exported AAR readable by Kotlin 2.0 consumers.
 kotlin {

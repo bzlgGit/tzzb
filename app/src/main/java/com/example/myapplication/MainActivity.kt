@@ -10,6 +10,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
+import androidx.core.view.WindowCompat
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.hexin.screenlog.api.ScreenLog
@@ -57,6 +58,7 @@ class MainActivity : Activity() {
                 requestStatus.text = "日志已开启，可从悬浮入口进入设置"
             },
             button("Test status bar compatibility") {
+                WindowCompat.setDecorFitsSystemWindows(window, false)
                 val content = findViewById<ViewGroup>(android.R.id.content)
                 var overlayCount = 0
                 for (index in 0 until content.childCount) {

@@ -216,7 +216,13 @@ internal class ScreenLogPanelView(
         updateFullscreenAction()
         binding.screenLogFullscreen.setOnClickListener {
             state.toggleFullscreen()
-            layoutParams = layoutParams.apply { height = panelHeight() }
+            val container = parent as? android.view.ViewGroup
+            layoutParams = (layoutParams as LayoutParams).apply {
+                height = panelHeight()
+                topMargin = if (state.fullscreen && container != null) {
+                    ScreenLogPanelInsets.topMargin(container)
+                } else 0
+            }
             updateFullscreenAction()
         }
         binding.screenLogClear.setOnClickListener { confirmClearLogs() }

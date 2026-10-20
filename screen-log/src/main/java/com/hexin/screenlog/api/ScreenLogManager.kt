@@ -20,6 +20,7 @@ import com.hexin.screenlog.storage.ScreenLogExporter
 import com.hexin.screenlog.ui.ScreenLogFloatingView
 import com.hexin.screenlog.ui.ScreenLogPanelView
 import com.hexin.screenlog.ui.ScreenLogPanelState
+import com.hexin.screenlog.ui.ScreenLogPanelInsets
 import java.io.File
 import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
@@ -465,7 +466,9 @@ internal object ScreenLogManager {
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     panelHeight,
                     android.view.Gravity.BOTTOM
-                )
+                ).apply {
+                    if (panelState.fullscreen) topMargin = ScreenLogPanelInsets.topMargin(container)
+                }
             )
             view.bringToFront()
             view.translationZ = activity.dp(32).toFloat()
