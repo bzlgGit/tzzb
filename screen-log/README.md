@@ -19,6 +19,7 @@
 | Android 最低版本 | API 24 |
 | 编译 SDK | API 34，可接入 `compileSdk 34 / targetSdk 33` 的 App |
 | Java 兼容级别 | Java 11 |
+| Kotlin 编译器 | 2.0 或更高；AAR 元数据按 2.0 生成 |
 | UI 技术 | Kotlin + View/XML，不依赖 Compose |
 | 直接依赖 | AndroidX Core KTX、ConstraintLayout、RecyclerView |
 | 权限 | 无新增权限 |
@@ -31,16 +32,16 @@
 .\gradlew.bat :screen-log:exportReleaseAar
 ```
 
-默认版本来自根目录 `gradle.properties` 中的 `screenLogVersion=1.0.1_SNAPSHOT`。在确认版本上线前，版本号统一保留 `_SNAPSHOT` 后缀，产物路径为：
+默认版本来自根目录 `gradle.properties` 中的 `screenLogVersion=1.0.4_SNAPSHOT`。每次交付包含新改动的 AAR 都必须递增版本号，不得沿用旧版本号覆盖交付；同步更新构建脚本的默认版本和本文接入示例。在确认版本上线前，版本号统一保留 `_SNAPSHOT` 后缀，产物路径为：
 
 ```text
-artifacts/screen-log-1.0.1_SNAPSHOT.aar
+artifacts/screen-log-1.0.4_SNAPSHOT.aar
 ```
 
 确认上线后，可以直接通过命令行传入正式版本号，不需要修改构建脚本：
 
 ```powershell
-.\gradlew.bat :screen-log:exportReleaseAar -PscreenLogVersion=1.0.1
+.\gradlew.bat :screen-log:exportReleaseAar -PscreenLogVersion=1.0.4
 ```
 
 `artifacts/` 已加入 `.gitignore`，生成的二进制文件不会被误提交。
@@ -51,7 +52,7 @@ artifacts/screen-log-1.0.1_SNAPSHOT.aar
 
 ```kotlin
 dependencies {
-    implementation(files("libs/screen-log-1.0.1_SNAPSHOT.aar"))
+    implementation(files("libs/screen-log-1.0.4_SNAPSHOT.aar"))
 
     implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
@@ -133,6 +134,13 @@ ScreenLog.i("Network", responseJson, prettyJson = true)
 ScreenLog.request(api = "/api/orders", prettyJson = true) {
     gson.fromJson(responseBody, LogPayload::class.java).toString()
 }
+ScreenLog.request(
+    api = "/api/orders",
+    phase = ScreenLogRequestPhase.RESPONSE,
+    prettyJson = true
+) {
+    responseBody
+}
 ScreenLog.e(
     tag = "AccountDelete",
     message = "delete account failed",
@@ -175,11 +183,24 @@ ScreenLog.e(tag, message, throwable = null, prettyJson = false, extras = null)
 - `保存日志到文件` Switch：默认关闭；开启后仅后续日志进入文件队列。
 - `自动滚动` Switch：控制列表是否跟随最新日志。
 - 面板默认占屏幕高度 `1/3`，双击面板切换到 `2/3`，再次双击恢复。
+- 顶部“全屏”可展开至整个页面，按钮变为“收起”；收起恢复进入全屏前的小屏或中屏尺寸。全屏期间双击不改变此前尺寸。
+- 面板不再展示“记录日志”和“自动滚动”开关，这两项可在悬浮菜单或设置页调整；顶部“清空屏幕”仅清内存。
 - 支持关键字、日志等级和 Tag 筛选。
 - 长按日志进入多选，点击其他日志增减选择，可全选当前筛选结果后统一复制。
 - 顶部复制图标可一键复制当前筛选结果；复制字段由 `ScreenLogCopyOptions` 控制，默认仅复制 message。
 - 关闭“自动滚动”只停止列表跟随，不影响日志记录。
-- 悬浮入口支持拖动并自动吸附左右边缘。
+- 悬浮入口支持拖动并自动吸附左右边缘，快捷菜单会限制在当前页面范围内，矮屏下可滚动操作。
+- 面板和快捷菜单中的“清空日志”仅清空内存并刷新列表，保留已保存文件；设置页的清空操作仍删除内存和文件。
+- 请求日志在正文首尾显示 URL 与 `REQUEST` / `RESPONSE` 阶段，相邻日志使用深浅交替背景。
+
+调用方需显式传入 `phase = ScreenLogRequestPhase.REQUEST`（请求参数）或 `phase = ScreenLogRequestPhase.RESPONSE`（响应结果）；组件不会根据正文自动判断。原接口省略 `phase` 时默认为请求参数。Java 调用示例：
+
+```java
+ScreenLog.request("/api/orders", ScreenLogRequestPhase.REQUEST, () -> requestParams);
+ScreenLog.request("/api/orders", ScreenLogRequestPhase.RESPONSE, () -> responseBody);
+```
+
+悬浮按钮靠右时菜单向左展开，靠底部时向上展开，展开和收起均保持按钮坐标。
 - `设置` 按“运行控制、交互设置、复制内容、存储与信息”分类，可修改记录、文件持久化、自动滚动、触摸目标和复制字段，也可导出或清空日志。
 
 切换 Activity 时，组件会重新挂载 View。记录开关、接口开关、自动滚动、触摸目标、复制字段、面板高度和悬浮入口位置会保存到模块私有 `SharedPreferences`；筛选条件、列表位置、多选状态和面板是否显示仅在当前进程或会话中保留。应用重新启动后若录制状态为开启，悬浮入口会自动显示，面板仍默认关闭；启动日志会进入内存，如已开启文件保存，也会写入文件。
@@ -263,6 +284,10 @@ ScreenLogKit.open(this)
 ```
 
 面板挂载到当前 Activity 的 `android.R.id.content`，不需要申请 `SYSTEM_ALERT_WINDOW`。
+
+若宿主会遍历 `android.R.id.content` 的子 ViewGroup 并统一调用 `setFitsSystemWindows(true)`，组件的悬浮入口和日志面板会忽略此设置，避免全屏时顶部操作区域因状态栏适配产生触摸偏移。
+
+示例 App 的 `Test status bar compatibility` 按钮会执行同样的遍历与设置，并检查日志浮层是否保持 `fitsSystemWindows=false`。验证时先开启日志面板，再点击这个测试按钮，确认提示验证到 2 个浮层；随后点“全屏”，分别点击“收起”按钮的上半部和下半部，均应恢复原尺寸。示例只模拟截图中的这段状态栏处理，业务 App 仍需替换 AAR 做最终触摸验收。
 
 ### 日志没有写入
 

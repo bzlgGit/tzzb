@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ScrollView
 import android.widget.TextView
@@ -13,6 +14,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.hexin.screenlog.api.ScreenLog
 import com.hexin.screenlog.api.ScreenLogKit
+import com.hexin.screenlog.api.ScreenLogRequestPhase
 
 class MainActivity : Activity() {
     private var testLogIndex = 0
@@ -53,6 +55,23 @@ class MainActivity : Activity() {
             button("Open screen log") {
                 ScreenLogKit.open(this)
                 requestStatus.text = "日志已开启，可从悬浮入口进入设置"
+            },
+            button("Test status bar compatibility") {
+                val content = findViewById<ViewGroup>(android.R.id.content)
+                var overlayCount = 0
+                for (index in 0 until content.childCount) {
+                    val child = content.getChildAt(index)
+                    if (child is ViewGroup) {
+                        // 模拟业务 App 对 content 所有子 ViewGroup 的统一状态栏适配。
+                        child.fitsSystemWindows = true
+                        child.clipToPadding = true
+                        if (child.javaClass.name.startsWith("com.hexin.screenlog.ui.")) {
+                            overlayCount++
+                            check(!child.fitsSystemWindows) { "日志浮层接受了宿主的状态栏偏移" }
+                        }
+                    }
+                }
+                requestStatus.text = "已模拟状态栏适配，验证日志浮层 $overlayCount 个"
             },
             button("Close screen log") {
                 ScreenLogKit.close()
@@ -157,7 +176,10 @@ class MainActivity : Activity() {
         testLogIndex += 1
         val responseBody = """{"request":$testLogIndex,"api":"$api","items":[1,2,3]}"""
         var providerCalled = false
-        ScreenLog.request(api = api, prettyJson = true) {
+        ScreenLog.request(api = api, phase = ScreenLogRequestPhase.REQUEST, prettyJson = true) {
+            """{"request":$testLogIndex}"""
+        }
+        ScreenLog.request(api = api, phase = ScreenLogRequestPhase.RESPONSE, prettyJson = true) {
             providerCalled = true
             gson.fromJson(responseBody, JsonObject::class.java).toString()
         }

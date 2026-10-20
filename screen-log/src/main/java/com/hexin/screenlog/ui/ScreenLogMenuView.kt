@@ -17,6 +17,8 @@ import com.hexin.screenlog.core.ScreenLogDispatcher
 
 internal class ScreenLogMenuView(context: Context) : LinearLayout(context), ScreenLogDispatcher.Listener {
 
+    var onCollapse: (() -> Unit)? = null
+
     private val panelSwitch = menuSwitch(R.string.screen_log_panel_visible)
     private val recordingSwitch = menuSwitch(R.string.screen_log_recording)
     private val autoScrollSwitch = menuSwitch(R.string.screen_log_auto_scroll)
@@ -53,7 +55,7 @@ internal class ScreenLogMenuView(context: Context) : LinearLayout(context), Scre
             setOnClickListener { ScreenLogKit.close() }
         })
         addView(menuItem(R.string.screen_log_collapse, R.drawable.screen_log_ic_expand).apply {
-            setOnClickListener { this@ScreenLogMenuView.visibility = View.GONE }
+            setOnClickListener { onCollapse?.invoke() }
         })
 
         panelSwitch.setOnCheckedChangeListener { _, checked ->
@@ -176,10 +178,10 @@ internal class ScreenLogMenuView(context: Context) : LinearLayout(context), Scre
 
     private fun confirmClearLogs() {
         AlertDialog.Builder(context)
-            .setTitle(R.string.screen_log_clear_confirm_title)
-            .setMessage(R.string.screen_log_clear_confirm_message)
+            .setTitle(R.string.screen_log_clear_memory_title)
+            .setMessage(R.string.screen_log_clear_memory_message)
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.screen_log_clear) { _, _ -> ScreenLogManager.clearLogs() }
+            .setPositiveButton(R.string.screen_log_clear) { _, _ -> ScreenLogManager.clearMemoryLogs() }
             .show()
     }
 }

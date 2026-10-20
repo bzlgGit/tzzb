@@ -162,6 +162,11 @@ internal object ScreenLogManager {
         ScreenLogFileWriter.clearAll()
     }
 
+    /** 只清空当前内存列表，保留已保存的文件。 */
+    fun clearMemoryLogs() {
+        ScreenLogDispatcher.clear()
+    }
+
     fun isPersistEnabled(): Boolean = isEnabled() && persistEnabled
 
     fun setPersistEnabled(enabled: Boolean) {
@@ -446,7 +451,9 @@ internal object ScreenLogManager {
         if (panelView?.parent === container) return
         panelView?.let { removeFromParent(it) }
         panelView = ScreenLogPanelView(activity, panelState).also { view ->
-            val panelHeight = if (panelState.large) {
+            val panelHeight = if (panelState.fullscreen) {
+                FrameLayout.LayoutParams.MATCH_PARENT
+            } else if (panelState.large) {
                 activity.resources.displayMetrics.heightPixels * 2 / 3
             } else {
                 activity.resources.displayMetrics.heightPixels / 3
@@ -493,6 +500,7 @@ internal object ScreenLogManager {
 
     private fun initializeStorage(config: ScreenLogConfig, logDir: File) {
         if (!storageInitialized.compareAndSet(false, true)) return
+        val historyGeneration = ScreenLogDispatcher.historyGeneration()
         storageExecutor.execute {
             if (!persistEnabled) {
                 storageInitialized.set(false)
@@ -502,7 +510,7 @@ internal object ScreenLogManager {
             ScreenLogCleaner(logDir).clean(config.keepDays)
             val historyEntries = ScreenLogFileReader(logDir).readRecent(config.keepDays)
             if (persistEnabled) {
-                ScreenLogDispatcher.mergeHistory(historyEntries)
+                ScreenLogDispatcher.mergeHistory(historyEntries, historyGeneration)
             } else {
                 storageInitialized.set(false)
             }

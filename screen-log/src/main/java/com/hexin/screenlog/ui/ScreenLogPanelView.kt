@@ -34,6 +34,11 @@ internal class ScreenLogPanelView(
     private val state: ScreenLogPanelState
 ) : FrameLayout(context), ScreenLogDispatcher.Listener {
 
+    override fun setFitsSystemWindows(fitSystemWindows: Boolean) {
+        // 宿主可能给 content 下所有 ViewGroup 强制开启该标志；浮层坐标已基于 content，不能再次扣除状态栏。
+        super.setFitsSystemWindows(false)
+    }
+
     private companion object {
         const val TAG = "ScreenLogPanelView"
     }
@@ -42,11 +47,9 @@ internal class ScreenLogPanelView(
     private val binding = ScreenLogPanelViewBinding.inflate(LayoutInflater.from(context), this, true)
     private var filter = state.filter
     private var filteredEntries = emptyList<com.hexin.screenlog.core.ScreenLogEntry>()
-    private var large = state.large
     private var refreshPosted = false
     private var touchMode = ScreenLogManager.getTouchMode()
     private var suppressFilterCallbacks = false
-    private var suppressStateCallbacks = false
     private var restoreScrollPending = state.listPosition >= 0
     private var selectionMode = false
     private var autoScrollWasPaused = false
@@ -55,7 +58,10 @@ internal class ScreenLogPanelView(
         override fun onDown(e: MotionEvent): Boolean = true
 
         override fun onDoubleTap(e: MotionEvent): Boolean {
-            Log.d(TAG, "onDoubleTap x=${e.x}, y=${e.y}, largeBefore=$large, touchMode=$touchMode")
+            if (state.fullscreen) return false
+            // 顶部操作按钮的连续点击不参与双击切换面板高度。
+            if (e.y <= binding.screenLogNormalBar.bottom && e.x >= binding.screenLogCopyFiltered.left) return false
+            Log.d(TAG, "onDoubleTap x=${e.x}, y=${e.y}, largeBefore=${state.large}, touchMode=$touchMode")
             toggleHeight()
             return true
         }
@@ -71,10 +77,10 @@ internal class ScreenLogPanelView(
                 false
             }
         }
-        layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, panelHeight(large), Gravity.BOTTOM)
+        layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, panelHeight(), Gravity.BOTTOM)
         binding.screenLogList.layoutManager = LinearLayoutManager(context)
         binding.screenLogList.adapter = adapter
-        trace("init, defaultHeight=${panelHeight(false)}, root=${binding.root.javaClass.simpleName}")
+        trace("init, defaultHeight=${panelHeight()}, root=${binding.root.javaClass.simpleName}")
         binding.root.setOnTouchListener { _, event ->
             if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_UP) {
                 trace("binding.root touch, action=${event.actionName()}, x=${event.x}, y=${event.y}")
@@ -146,8 +152,6 @@ internal class ScreenLogPanelView(
         super.onAttachedToWindow()
         trace("onAttachedToWindow width=$width, height=$height, layoutHeight=${layoutParams?.height}, parent=${parent?.javaClass?.simpleName}")
         ScreenLogDispatcher.addListener(this)
-        onAutoScrollChanged(ScreenLogDispatcher.isAutoScrollPaused())
-        onRecordingChanged(ScreenLogManager.isRecordingEnabled())
         refreshNow()
     }
 
@@ -168,17 +172,9 @@ internal class ScreenLogPanelView(
         }, 180)
     }
 
-    override fun onAutoScrollChanged(paused: Boolean) {
-        suppressStateCallbacks = true
-        binding.screenLogAutoScroll.isChecked = !paused
-        suppressStateCallbacks = false
-    }
+    override fun onAutoScrollChanged(paused: Boolean) = Unit
 
-    override fun onRecordingChanged(enabled: Boolean) {
-        suppressStateCallbacks = true
-        binding.screenLogRecording.isChecked = enabled
-        suppressStateCallbacks = false
-    }
+    override fun onRecordingChanged(enabled: Boolean) = Unit
 
     private fun setupFilters() {
         val levels = listOf(context.getString(R.string.screen_log_level_all)) + ScreenLogLevel.values().map { it.name }
@@ -217,12 +213,11 @@ internal class ScreenLogPanelView(
     }
 
     private fun setupActions() {
-        binding.screenLogRecording.setOnCheckedChangeListener { _, checked ->
-            if (!suppressStateCallbacks) ScreenLogManager.setRecordingEnabled(checked)
-        }
-        binding.screenLogAutoScroll.setOnCheckedChangeListener { _, checked ->
-            if (suppressStateCallbacks) return@setOnCheckedChangeListener
-            if (checked) ScreenLogManager.resumeAutoScroll() else ScreenLogManager.pauseAutoScroll()
+        updateFullscreenAction()
+        binding.screenLogFullscreen.setOnClickListener {
+            state.toggleFullscreen()
+            layoutParams = layoutParams.apply { height = panelHeight() }
+            updateFullscreenAction()
         }
         binding.screenLogClear.setOnClickListener { confirmClearLogs() }
         binding.screenLogCopyFiltered.setOnClickListener { copyFilteredEntries() }
@@ -274,17 +269,24 @@ internal class ScreenLogPanelView(
 
     private fun toggleHeight() {
         val oldHeight = layoutParams?.height ?: 0
-        large = !large
-        ScreenLogManager.setPanelExpanded(large)
-        val newHeight = panelHeight(large)
-        trace("toggleHeight large=$large, oldHeight=$oldHeight, newHeight=$newHeight, parent=${parent?.javaClass?.simpleName}")
+        state.toggleCompactSize()
+        ScreenLogManager.setPanelExpanded(state.large)
+        val newHeight = panelHeight()
+        trace("toggleHeight large=${state.large}, oldHeight=$oldHeight, newHeight=$newHeight, parent=${parent?.javaClass?.simpleName}")
         layoutParams = layoutParams.apply { height = newHeight }
         requestLayout()
     }
 
-    private fun panelHeight(large: Boolean): Int {
+    private fun updateFullscreenAction() {
+        binding.screenLogFullscreen.setText(
+            if (state.fullscreen) R.string.screen_log_restore_size else R.string.screen_log_fullscreen
+        )
+    }
+
+    private fun panelHeight(): Int {
+        if (state.fullscreen) return LayoutParams.MATCH_PARENT
         val screenHeight = resources.displayMetrics.heightPixels
-        return if (large) screenHeight * 2 / 3 else screenHeight / 3
+        return if (state.large) screenHeight * 2 / 3 else screenHeight / 3
     }
 
     private fun MotionEvent.actionName(): String {
@@ -406,8 +408,7 @@ internal class ScreenLogPanelView(
         listOf(
             binding.screenLogSearch,
             binding.screenLogLevel,
-            binding.screenLogTag,
-            binding.screenLogAutoScroll
+            binding.screenLogTag
         ).forEach {
             it.isEnabled = enabled
             it.alpha = if (enabled) 1f else 0.5f
@@ -441,10 +442,10 @@ internal class ScreenLogPanelView(
 
     private fun confirmClearLogs() {
         AlertDialog.Builder(context)
-            .setTitle(R.string.screen_log_clear_confirm_title)
-            .setMessage(R.string.screen_log_clear_confirm_message)
+            .setTitle(R.string.screen_log_clear_memory_title)
+            .setMessage(R.string.screen_log_clear_memory_message)
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.screen_log_clear) { _, _ -> ScreenLogManager.clearLogs() }
+            .setPositiveButton(R.string.screen_log_clear) { _, _ -> ScreenLogManager.clearMemoryLogs() }
             .show()
     }
 

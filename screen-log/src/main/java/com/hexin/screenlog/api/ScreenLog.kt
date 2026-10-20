@@ -3,6 +3,8 @@ package com.hexin.screenlog.api
 object ScreenLog {
 
     /** 仅在请求日志允许记录时调用 provider。 */
+    @JvmStatic
+    @JvmOverloads
     fun request(
         api: String,
         level: ScreenLogLevel = ScreenLogLevel.DEBUG,
@@ -10,9 +12,23 @@ object ScreenLog {
         extras: Map<String, String>? = null,
         messageProvider: RequestLogMessageProvider
     ) {
+        request(api, ScreenLogRequestPhase.REQUEST, level, prettyJson, extras, messageProvider)
+    }
+
+    /** 保留原请求接口，新重载支持标记请求或响应。 */
+    @JvmStatic
+    @JvmOverloads
+    fun request(
+        api: String,
+        phase: ScreenLogRequestPhase,
+        level: ScreenLogLevel = ScreenLogLevel.DEBUG,
+        prettyJson: Boolean = false,
+        extras: Map<String, String>? = null,
+        messageProvider: RequestLogMessageProvider
+    ) {
         require(api.isNotBlank()) { "api must not be blank" }
         if (!ScreenLogManager.canRecordRequest(api, level)) return
-        val requestExtras = extras.orEmpty() + ("api" to api.trim())
+        val requestExtras = extras.orEmpty() + mapOf("api" to api.trim(), "phase" to phase.name)
         val message = try {
             messageProvider.provide()
         } catch (error: Exception) {

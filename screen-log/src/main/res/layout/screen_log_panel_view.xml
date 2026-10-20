@@ -57,8 +57,21 @@
             android:minWidth="60dp"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
-            android:text="@string/screen_log_clear"
+            android:text="@string/screen_log_clear_screen"
             android:textColor="@color/screen_log_brand"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/screenLogFullscreen"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center"
+            android:minWidth="48dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:text="@string/screen_log_fullscreen"
+            android:textColor="@color/screen_log_text_primary"
             android:textSize="12sp" />
 
         <TextView
@@ -185,43 +198,6 @@
         app:layout_constraintStart_toEndOf="@id/screenLogLevel"
         app:layout_constraintTop_toTopOf="@id/screenLogLevel" />
 
-    <Switch
-        android:id="@+id/screenLogRecording"
-        android:layout_width="0dp"
-        android:layout_height="44dp"
-        android:checked="true"
-        android:gravity="center_vertical"
-        android:minWidth="0dp"
-        android:switchMinWidth="40dp"
-        android:switchPadding="8dp"
-        android:text="@string/screen_log_recording"
-        android:textColor="@color/screen_log_text_primary"
-        android:textSize="12sp"
-        android:thumbTint="@color/screen_log_switch_thumb"
-        android:trackTint="@color/screen_log_switch_track"
-        app:layout_constraintEnd_toStartOf="@id/screenLogAutoScroll"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/screenLogLevel" />
-
-    <Switch
-        android:id="@+id/screenLogAutoScroll"
-        android:layout_width="0dp"
-        android:layout_height="44dp"
-        android:layout_marginStart="8dp"
-        android:checked="true"
-        android:gravity="center_vertical"
-        android:minWidth="0dp"
-        android:switchMinWidth="40dp"
-        android:switchPadding="8dp"
-        android:text="@string/screen_log_auto_scroll"
-        android:textColor="@color/screen_log_text_primary"
-        android:textSize="12sp"
-        android:thumbTint="@color/screen_log_switch_thumb"
-        android:trackTint="@color/screen_log_switch_track"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/screenLogRecording"
-        app:layout_constraintTop_toTopOf="@id/screenLogRecording" />
-
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/screenLogList"
         android:layout_width="0dp"
@@ -231,5 +207,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/screenLogRecording" />
+        app:layout_constraintTop_toBottomOf="@id/screenLogLevel" />
 </androidx.constraintlayout.widget.ConstraintLayout>

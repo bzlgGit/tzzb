@@ -19,6 +19,11 @@
         <item quantity="other">已复制 %d 条日志</item>
     </plurals>
     <string name="screen_log_clear">清空</string>
+    <string name="screen_log_clear_screen">清空屏幕</string>
+    <string name="screen_log_fullscreen">全屏</string>
+    <string name="screen_log_restore_size">收起</string>
+    <string name="screen_log_clear_memory_title">清空屏幕日志？</string>
+    <string name="screen_log_clear_memory_message">仅清空内存中的日志，保留已保存的日志文件。</string>
     <string name="screen_log_clear_logs">清空日志</string>
     <string name="screen_log_close">关闭屏幕日志</string>
     <string name="screen_log_collapse">收起菜单</string>

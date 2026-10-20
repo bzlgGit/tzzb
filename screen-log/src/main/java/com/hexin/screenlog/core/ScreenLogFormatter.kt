@@ -52,12 +52,21 @@ object ScreenLogFormatter {
 
     fun formatMessage(entry: ScreenLogEntry): String {
         val message = if (entry.prettyJson) prettyPrintJson(entry.message) else entry.message
+        val requestLabel = entry.extras?.get("api")?.let { api ->
+            val phase = when (entry.extras["phase"]) {
+                "RESPONSE" -> "RESPONSE 响应结果"
+                else -> "REQUEST 请求参数"
+            }
+            "[$phase] $api"
+        }
         return buildString {
+            if (requestLabel != null) append(requestLabel).append('\n')
             append(message)
             if (!entry.throwableStackTrace.isNullOrBlank()) {
                 append('\n')
                 append(entry.throwableStackTrace)
             }
+            if (requestLabel != null) append('\n').append(requestLabel)
         }
     }
 

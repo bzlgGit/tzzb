@@ -60,8 +60,15 @@ class ScreenLogAdapter(
             binding.screenLogSelection.setImageResource(
                 if (selected) R.drawable.screen_log_ic_checked else R.drawable.screen_log_ic_checkbox
             )
+            bindBackground()
+        }
+
+        fun bindBackground() {
+            val selected = currentEntry()?.let(selectedEntries::contains) == true
             binding.root.setBackgroundResource(
-                if (selected) R.drawable.screen_log_item_selected_bg else android.R.color.transparent
+                if (selected) R.drawable.screen_log_item_selected_bg
+                else if (bindingAdapterPosition % 2 == 0) R.color.screen_log_row_dark
+                else R.color.screen_log_row_light
             )
         }
 
@@ -69,6 +76,21 @@ class ScreenLogAdapter(
             val position = bindingAdapterPosition
             return position.takeIf { it != RecyclerView.NO_POSITION }?.let(::getItem)
         }
+    }
+
+    override fun onBindViewHolder(holder: Holder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isNotEmpty() && payloads.all { it == ROW_BACKGROUND }) holder.bindBackground()
+        else super.onBindViewHolder(holder, position, payloads)
+    }
+
+    override fun onCurrentListChanged(previousList: MutableList<ScreenLogEntry>, currentList: MutableList<ScreenLogEntry>) {
+        super.onCurrentListChanged(previousList, currentList)
+        // 淘汰旧日志或筛选后，原有条目的奇偶位置也可能改变。
+        notifyItemRangeChanged(0, itemCount, ROW_BACKGROUND)
+    }
+
+    private companion object {
+        const val ROW_BACKGROUND = "row_background"
     }
 
     fun setSelectionMode(enabled: Boolean) {

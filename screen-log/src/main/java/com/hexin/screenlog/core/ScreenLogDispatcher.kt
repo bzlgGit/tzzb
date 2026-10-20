@@ -15,6 +15,7 @@ object ScreenLogDispatcher {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val listeners = CopyOnWriteArrayList<Listener>()
     private val entries = ArrayList<ScreenLogEntry>()
+    private var clearGeneration = 0L
     private var maxMemoryEntries = 1000
     @Volatile
     private var autoScrollPaused = false
@@ -33,8 +34,12 @@ object ScreenLogDispatcher {
         notifyLogsChanged()
     }
 
-    fun mergeHistory(historyEntries: List<ScreenLogEntry>) {
+    fun historyGeneration(): Long = synchronized(entries) { clearGeneration }
+
+    fun mergeHistory(historyEntries: List<ScreenLogEntry>, expectedGeneration: Long = historyGeneration()) {
         synchronized(entries) {
+            // 用户清屏后，不再合并此前已开始读取的历史文件。
+            if (expectedGeneration != clearGeneration) return
             val merged = LinkedHashSet<ScreenLogEntry>(historyEntries.size + entries.size)
             merged.addAll(historyEntries)
             merged.addAll(entries)
@@ -56,6 +61,7 @@ object ScreenLogDispatcher {
 
     fun clear() {
         synchronized(entries) {
+            clearGeneration++
             entries.clear()
         }
         notifyLogsChanged()

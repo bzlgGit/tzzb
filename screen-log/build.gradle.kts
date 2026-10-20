@@ -2,7 +2,15 @@ plugins {
     alias(libs.plugins.android.library)
 }
 
-val screenLogVersion = providers.gradleProperty("screenLogVersion").orElse("1.0.1_SNAPSHOT")
+val screenLogVersion = providers.gradleProperty("screenLogVersion").orElse("1.0.4_SNAPSHOT")
+
+// Keep the exported AAR readable by Kotlin 2.0 consumers.
+kotlin {
+    compilerOptions {
+        languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
+        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
+    }
+}
 
 android {
     namespace = "com.hexin.screenlog"
@@ -41,6 +49,8 @@ tasks.register<Copy>("exportReleaseAar") {
     group = "distribution"
     description = "Builds and exports the versioned release AAR to the root artifacts directory."
     dependsOn("bundleReleaseAar")
+    // 版本号参与增量检查，避免改版后导出任务被误判为无需执行。
+    inputs.property("screenLogVersion", screenLogVersion)
     from(layout.buildDirectory.file("outputs/aar/screen-log-release.aar"))
     into(rootProject.layout.projectDirectory.dir("artifacts"))
     rename { "screen-log-${screenLogVersion.get()}.aar" }
