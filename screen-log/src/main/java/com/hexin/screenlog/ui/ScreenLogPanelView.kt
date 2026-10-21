@@ -13,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
@@ -59,11 +60,10 @@ internal class ScreenLogPanelView(
         override fun onDown(e: MotionEvent): Boolean = true
 
         override fun onDoubleTap(e: MotionEvent): Boolean {
-            if (state.fullscreen) return false
             // 顶部操作按钮的连续点击不参与双击切换面板高度。
             if (e.y <= binding.screenLogNormalBar.bottom && e.x >= binding.screenLogCopyFiltered.left) return false
             Log.d(TAG, "onDoubleTap x=${e.x}, y=${e.y}, largeBefore=${state.large}, touchMode=$touchMode")
-            toggleHeight()
+            if (state.fullscreen) toggleFullscreen() else toggleHeight()
             return true
         }
     })
@@ -110,6 +110,7 @@ internal class ScreenLogPanelView(
         })
         setupFilters()
         setupActions()
+        updateTitle()
         restoreFilterControls()
         refreshNow()
     }
@@ -218,17 +219,7 @@ internal class ScreenLogPanelView(
 
     private fun setupActions() {
         updateFullscreenAction()
-        binding.screenLogFullscreen.setOnClickListener {
-            state.toggleFullscreen()
-            val container = parent as? android.view.ViewGroup
-            layoutParams = (layoutParams as LayoutParams).apply {
-                height = panelHeight()
-                topMargin = if (state.fullscreen && container != null) {
-                    ScreenLogPanelInsets.topMargin(container)
-                } else 0
-            }
-            updateFullscreenAction()
-        }
+        binding.screenLogFullscreen.setOnClickListener { toggleFullscreen() }
         binding.screenLogClear.setOnClickListener { confirmClearLogs() }
         binding.screenLogCopyFiltered.setOnClickListener { copyFilteredEntries() }
         binding.screenLogSettings.setOnClickListener { ScreenLogManager.openSettings() }
@@ -272,7 +263,7 @@ internal class ScreenLogPanelView(
     private fun updateJumpToLatestVisibility() {
         binding.screenLogJumpToLatest.visibility = if (
             adapter.itemCount > 0 && binding.screenLogList.canScrollVertically(1)
-        ) View.VISIBLE else View.GONE
+        ) View.VISIBLE else View.INVISIBLE
     }
 
     private fun updateTags(tags: List<String>) {
@@ -304,7 +295,30 @@ internal class ScreenLogPanelView(
         val newHeight = panelHeight()
         trace("toggleHeight large=${state.large}, oldHeight=$oldHeight, newHeight=$newHeight, parent=${parent?.javaClass?.simpleName}")
         layoutParams = layoutParams.apply { height = newHeight }
+        updateTitle()
         requestLayout()
+    }
+
+    private fun toggleFullscreen() {
+        state.toggleFullscreen()
+        val container = parent as? ViewGroup
+        layoutParams = (layoutParams as LayoutParams).apply {
+            height = panelHeight()
+            topMargin = if (state.fullscreen && container != null) {
+                ScreenLogPanelInsets.topMargin(container)
+            } else 0
+        }
+        updateFullscreenAction()
+        updateTitle()
+    }
+
+    private fun updateTitle() {
+        binding.screenLogTitle.setText(
+            when {
+                state.fullscreen || state.large -> R.string.screen_log_double_tap_shrink
+                else -> R.string.screen_log_double_tap_expand
+            }
+        )
     }
 
     private fun updateFullscreenAction() {
@@ -459,15 +473,18 @@ internal class ScreenLogPanelView(
             Toast.makeText(context, R.string.screen_log_nothing_to_copy, Toast.LENGTH_SHORT).show()
             return
         }
-        copyEntries(entries)
+        copyEntries(entries, R.plurals.screen_log_copied_filtered_count)
     }
 
-    private fun copyEntries(entries: List<com.hexin.screenlog.core.ScreenLogEntry>) {
+    private fun copyEntries(
+        entries: List<com.hexin.screenlog.core.ScreenLogEntry>,
+        copiedCountMessage: Int = R.plurals.screen_log_copied_count
+    ) {
         val options = ScreenLogManager.copyOptions()
         val text = entries.joinToString(separator = "\n") {
             ScreenLogFormatter.formatForCopy(it, options)
         }
-        copyText(text, copiedCount = entries.size)
+        copyText(text, copiedCount = entries.size, copiedCountMessage = copiedCountMessage)
     }
 
     private fun confirmClearLogs() {
@@ -479,11 +496,11 @@ internal class ScreenLogPanelView(
             .show()
     }
 
-    private fun copyText(text: String, copiedCount: Int) {
+    private fun copyText(text: String, copiedCount: Int, copiedCountMessage: Int) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("screen-log", text))
         val message = resources.getQuantityString(
-            R.plurals.screen_log_copied_count,
+            copiedCountMessage,
             copiedCount,
             copiedCount
         )
