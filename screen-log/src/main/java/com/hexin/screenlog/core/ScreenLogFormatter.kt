@@ -17,6 +17,7 @@ object ScreenLogFormatter {
     }
 
     fun display(entry: ScreenLogEntry): String {
+        val extras = visibleExtras(entry)
         return buildString {
             append("[")
             append(formatTime(entry.timeMillis))
@@ -26,14 +27,15 @@ object ScreenLogFormatter {
             append(entry.tag)
             append("] ")
             append(formatMessage(entry))
-            if (!entry.extras.isNullOrEmpty()) {
+            if (extras.isNotEmpty()) {
                 append(" extras=")
-                append(entry.extras)
+                append(extras)
             }
         }
     }
 
     internal fun formatForCopy(entry: ScreenLogEntry, options: ScreenLogCopyOptions): String {
+        val extras = visibleExtras(entry)
         return buildString {
             if (options.includeTime) appendField(formatTime(entry.timeMillis))
             if (options.includeLevel) appendField(entry.level.name)
@@ -43,30 +45,40 @@ object ScreenLogFormatter {
             }
             if (isNotEmpty()) append(' ')
             append(formatMessage(entry))
-            if (options.includeExtras && !entry.extras.isNullOrEmpty()) {
+            if (options.includeExtras && extras.isNotEmpty()) {
                 append(" extras=")
-                append(entry.extras)
+                append(extras)
             }
         }
     }
 
     fun formatMessage(entry: ScreenLogEntry): String {
-        val message = if (entry.prettyJson) prettyPrintJson(entry.message) else entry.message
-        val requestLabel = entry.extras?.get("api")?.let { api ->
-            val phase = when (entry.extras["phase"]) {
-                "RESPONSE" -> "RESPONSE 响应结果"
-                else -> "REQUEST 请求参数"
-            }
-            "[$phase] $api"
+        val label = requestLabel(entry)
+        val body = formatBody(entry)
+        return if (label == null) body else "$label\n$body"
+    }
+
+    fun requestLabel(entry: ScreenLogEntry): String? = entry.extras?.get("api")?.let { api ->
+        val phase = when (entry.extras["phase"]) {
+            "RESPONSE" -> "RESPONSE 响应结果"
+            else -> "REQUEST 请求参数"
         }
+        "[$phase] $api"
+    }
+
+    fun visibleExtras(entry: ScreenLogEntry): Map<String, String> {
+        val extras = entry.extras.orEmpty()
+        return if (requestLabel(entry) == null) extras else extras - listOf("api", "phase")
+    }
+
+    fun formatBody(entry: ScreenLogEntry): String {
+        val message = if (entry.prettyJson) prettyPrintJson(entry.message) else entry.message
         return buildString {
-            if (requestLabel != null) append(requestLabel).append('\n')
             append(message)
             if (!entry.throwableStackTrace.isNullOrBlank()) {
                 append('\n')
                 append(entry.throwableStackTrace)
             }
-            if (requestLabel != null) append('\n').append(requestLabel)
         }
     }
 

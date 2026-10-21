@@ -1,12 +1,14 @@
 package com.hexin.screenlog.ui
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.hexin.screenlog.R
 import com.hexin.screenlog.api.ScreenLogManager
 import com.hexin.screenlog.api.ScreenLogTouchMode
@@ -40,10 +42,13 @@ internal class ScreenLogFloatingView(
 
         entryButton.text = context.getString(R.string.screen_log_entry)
         entryButton.gravity = Gravity.CENTER
-        entryButton.setTextColor(0xFFFFFFFF.toInt())
+        entryButton.setTextColor(ContextCompat.getColor(context, R.color.screen_log_entry_content))
         entryButton.textSize = 12f
-        entryButton.background = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.screen_log_entry_bg)
+        entryButton.background = ContextCompat.getDrawable(context, R.drawable.screen_log_entry_bg)
         entryButton.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.screen_log_ic_expand, 0, 0, 0)
+        entryButton.compoundDrawableTintList = ColorStateList.valueOf(
+            ContextCompat.getColor(context, R.color.screen_log_entry_content)
+        )
         entryButton.compoundDrawablePadding = context.dp(4)
         addView(entryButton, LayoutParams(context.dp(52), context.dp(48)))
 

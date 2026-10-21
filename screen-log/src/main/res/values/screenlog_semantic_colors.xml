@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ===== tzzb/color/bg/page ===== -->
+
+    <!-- Figma: tzzb/color/bg/page/default -->
+    <!-- 应用场景：全局页面背景 -->
+    <color name="screenlog_color_bg_page_default">#F4F5F7</color>
+
+    <!-- ===== tzzb/color/bg/card ===== -->
+
+    <!-- Figma: tzzb/color/bg/card/default -->
+    <!-- 应用场景：常规卡片 -->
+    <color name="screenlog_color_bg_card_default">#FFFFFF</color>
+
+    <!-- Figma: tzzb/color/bg/card/secondary -->
+    <!-- 应用场景：次级卡片 / 卡片内模块 -->
+    <color name="screenlog_color_bg_card_secondary">#FAFAFB</color>
+
+    <!-- ===== tzzb/color/bg/input ===== -->
+
+    <!-- Figma: tzzb/color/bg/input/default -->
+    <!-- 应用场景：输入框底色 -->
+    <color name="screenlog_color_bg_input_default">#EEEEEE</color>
+
+    <!-- ===== tzzb/color/bg/modal ===== -->
+
+    <!-- Figma: tzzb/color/bg/modal/default -->
+    <!-- 应用场景：弹窗底色 -->
+    <color name="screenlog_color_bg_modal_default">#FFFFFF</color>
+
+    <!-- ===== tzzb/color/bg/mask ===== -->
+
+    <!-- Figma: tzzb/color/bg/mask/default -->
+    <!-- 应用场景：弹窗蒙层 -->
+    <color name="screenlog_color_bg_mask_default">#8C000000</color>
+
+    <!-- ===== tzzb/color/bg/indicator ===== -->
+
+    <!-- Figma: tzzb/color/bg/indicator/default -->
+    <!-- 应用场景：滚动指示器默认 -->
+    <color name="screenlog_color_bg_indicator_default">#EEEEEE</color>
+
+    <!-- Figma: tzzb/color/bg/indicator/active -->
+    <!-- 应用场景：滚动指示器选中/激活 -->
+    <color name="screenlog_color_bg_indicator_active">#FF4134</color>
+
+    <!-- ===== tzzb/color/bg/tag/soft ===== -->
+
+    <!-- Figma: tzzb/color/bg/tag/soft/neutral -->
+    <!-- 应用场景：分类/属性/辅助信息/无明确状态倾向 -->
+    <color name="screenlog_color_bg_tag_soft_neutral">#F4F5F7</color>
+
+    <!-- Figma: tzzb/color/bg/tag/soft/market_up -->
+    <!-- 应用场景：推荐/核心/当前重点/品牌强调信息态 -->
+    <color name="screenlog_color_bg_tag_soft_market_up">#1AFF4134</color>
+
+    <!-- Figma: tzzb/color/bg/tag/soft/warning -->
+    <!-- 应用场景：风险/注意/异常待关注/重要提醒 -->
+    <color name="screenlog_color_bg_tag_soft_warning">#1AFF9500</color>
+
+    <!-- Figma: tzzb/color/bg/tag/soft/market_down -->
+    <!-- 应用场景：下跌/负收益/负涨幅等金融市场语义 -->
+    <color name="screenlog_color_bg_tag_soft_market_down">#1A4381FF</color>
+
+    <!-- Figma: tzzb/color/bg/tag/soft/sky_blue -->
+    <!-- 应用场景：信息提示/辅助功能强调色 -->
+    <color name="screenlog_color_bg_tag_soft_sky_blue">#1A009FFF</color>
+
+    <!-- Figma: tzzb/color/bg/tag/soft/ai_feature -->
+    <!-- 应用场景：AI分析/AI能力/智能功能专属标识 -->
+    <color name="screenlog_color_bg_tag_soft_ai_feature">#1A6139FF</color>
+
+    <!-- Figma: tzzb/color/bg/tag/soft/feature_accent -->
+    <!-- 应用场景：新能力/特色能力/区别于普通功能的功能标识 -->
+    <color name="screenlog_color_bg_tag_soft_feature_accent">#1AB341D9</color>
+
+    <!-- Figma: tzzb/color/bg/tag/soft/success -->
+    <!-- 应用场景：已完成/已生效/成功/正常状态 -->
+    <color name="screenlog_color_bg_tag_soft_success">#1A29B393</color>
+
+    <!-- ===== tzzb/color/bg/tag/solid ===== -->
+
+    <!-- Figma: tzzb/color/bg/tag/solid/neutral -->
+    <!-- 应用场景：分类/属性/辅助信息/无明确状态倾向 -->
+    <color name="screenlog_color_bg_tag_solid_neutral">#999999</color>
+
+    <!-- Figma: tzzb/color/bg/tag/solid/market_up -->
+    <!-- 应用场景：上涨/正收益/正涨幅等金融市场语义 -->
+    <color name="screenlog_color_bg_tag_solid_market_up">#FF4134</color>
+
+    <!-- Figma: tzzb/color/bg/tag/solid/warning -->
+    <!-- 应用场景：风险/注意/异常待关注/重要提醒 -->
+    <color name="screenlog_color_bg_tag_solid_warning">#FF9500</color>
+
+    <!-- Figma: tzzb/color/bg/tag/solid/market_down -->
+    <!-- 应用场景：下跌/负收益/负涨幅等金融市场语义 -->
+    <color name="screenlog_color_bg_tag_solid_market_down">#4381FF</color>
+
+    <!-- Figma: tzzb/color/bg/tag/solid/sky_blue -->
+    <!-- 应用场景：信息提示/辅助功能强调色 -->
+    <color name="screenlog_color_bg_tag_solid_sky_blue">#009FFF</color>
+
+    <!-- Figma: tzzb/color/bg/tag/solid/ai_feature -->
+    <!-- 应用场景：AI分析/AI能力/智能功能专属标识 -->
+    <color name="screenlog_color_bg_tag_solid_ai_feature">#6139FF</color>
+
+    <!-- Figma: tzzb/color/bg/tag/solid/feature_accent -->
+    <!-- 应用场景：新能力/特色能力/区别于普通功能的功能标识 -->
+    <color name="screenlog_color_bg_tag_solid_feature_accent">#B341D9</color>
+
+    <!-- Figma: tzzb/color/bg/tag/solid/success -->
+    <!-- 应用场景：已完成/已生效/成功/正常状态 -->
+    <color name="screenlog_color_bg_tag_solid_success">#29B393</color>
+
+    <!-- ===== tzzb/color/button/primary ===== -->
+
+    <!-- Figma: tzzb/color/button/primary/bg/default -->
+    <!-- 应用场景：主要按钮 -->
+    <color name="screenlog_color_button_primary_bg_default">#FF4134</color>
+
+    <!-- Figma: tzzb/color/button/primary/bg/disabled -->
+    <!-- 应用场景：主要按钮 -->
+    <color name="screenlog_color_button_primary_bg_disabled">#1AFF4134</color>
+
+    <!-- Figma: tzzb/color/button/primary/text/default -->
+    <!-- 应用场景：主要按钮文字 -->
+    <color name="screenlog_color_button_primary_text_default">#FFFFFF</color>
+
+    <!-- Figma: tzzb/color/button/primary/text/disabled -->
+    <!-- 应用场景：主要按钮文字 -->
+    <color name="screenlog_color_button_primary_text_disabled">#FFFFFF</color>
+
+    <!-- ===== tzzb/color/button/secondary ===== -->
+
+    <!-- Figma: tzzb/color/button/secondary/bg/default -->
+    <!-- 应用场景：次级按钮 / 未选中中性按钮；位于弹窗内不改变该组件语义 -->
+    <color name="screenlog_color_button_secondary_bg_default">#F4F5F7</color>
+
+    <!-- Figma: tzzb/color/button/secondary/bg/disabled -->
+    <!-- 应用场景：次级按钮 -->
+    <color name="screenlog_color_button_secondary_bg_disabled">#F4F5F7</color>
+
+    <!-- Figma: tzzb/color/button/secondary/text/default -->
+    <!-- 应用场景：次级按钮文字 -->
+    <color name="screenlog_color_button_secondary_text_default">#333333</color>
+
+    <!-- Figma: tzzb/color/button/secondary/text/disabled -->
+    <!-- 应用场景：次级按钮文字 -->
+    <color name="screenlog_color_button_secondary_text_disabled">#CCCCCC</color>
+
+    <!-- ===== tzzb/color/button/modal ===== -->
+
+    <!-- Figma: tzzb/color/button/modal/bg/neutral -->
+    <!-- 应用场景：弹窗中性按钮；仅在设计明确绑定 Modal Token 时使用 -->
+    <color name="screenlog_color_button_modal_bg_neutral">#F4F5F7</color>
+
+    <!-- Figma: tzzb/color/button/modal/text/default -->
+    <!-- 应用场景：弹窗按钮文字 -->
+    <color name="screenlog_color_button_modal_text_default">#666666</color>
+
+    <!-- ===== tzzb/color/button/ghost ===== -->
+
+    <!-- Figma: tzzb/color/button/ghost/border/default -->
+    <!-- 应用场景：幽灵按钮按钮边框 -->
+    <color name="screenlog_color_button_ghost_border_default">#CCCCCC</color>
+
+    <!-- Figma: tzzb/color/button/ghost/border/disabled -->
+    <!-- 应用场景：幽灵按钮按钮禁用 -->
+    <color name="screenlog_color_button_ghost_border_disabled">#EEEEEE</color>
+
+    <!-- Figma: tzzb/color/button/ghost/text/default -->
+    <!-- 应用场景：幽灵按钮按钮文字 -->
+    <color name="screenlog_color_button_ghost_text_default">#333333</color>
+
+    <!-- Figma: tzzb/color/button/ghost/text/disabled -->
+    <!-- 应用场景：幽灵按钮按钮文字禁用 -->
+    <color name="screenlog_color_button_ghost_text_disabled">#CCCCCC</color>
+
+    <!-- ===== tzzb/color/button/text ===== -->
+
+    <!-- Figma: tzzb/color/button/text/primary -->
+    <!-- 应用场景：文本常规按钮 -->
+    <color name="screenlog_color_button_text_primary">#4381FF</color>
+
+    <!-- Figma: tzzb/color/button/text/secondary -->
+    <!-- 应用场景：文本次级按钮 -->
+    <color name="screenlog_color_button_text_secondary">#999999</color>
+
+    <!-- Figma: tzzb/color/button/text/disabled -->
+    <!-- 应用场景：文本按钮禁用 -->
+    <color name="screenlog_color_button_text_disabled">#CCCCCC</color>
+
+    <!-- ===== tzzb/color/button/sort ===== -->
+
+    <!-- Figma: tzzb/color/button/sort/default -->
+    <!-- 应用场景：排序按钮默认 -->
+    <color name="screenlog_color_button_sort_default">#CCCCCC</color>
+
+    <!-- Figma: tzzb/color/button/sort/active -->
+    <!-- 应用场景：排序按钮-升序降序 -->
+    <color name="screenlog_color_button_sort_active">#333333</color>
+
+    <!-- ===== tzzb/color/tab/page_secondary_block ===== -->
+
+    <!-- Figma: tzzb/color/tab/page_secondary_block/selected -->
+    <!-- 应用场景：页面二级分块式 Tab 当前选中背景 -->
+    <color name="screenlog_color_tab_page_secondary_block_selected">#1AFF4134</color>
+
+    <!-- Figma: tzzb/color/tab/page_secondary_block/selected_text -->
+    <!-- 应用场景：页面二级分块式 Tab 当前选中文字 -->
+    <color name="screenlog_color_tab_page_secondary_block_selected_text">#FF4134</color>
+
+    <!-- Figma: tzzb/color/tab/page_secondary_block/unselected -->
+    <!-- 应用场景：页面二级分块式 Tab 当前未选中背景 -->
+    <color name="screenlog_color_tab_page_secondary_block_unselected">#F4F5F7</color>
+
+    <!-- Figma: tzzb/color/tab/page_secondary_block/unselected_text -->
+    <!-- 应用场景：页面二级分块式 Tab 当前未选中文字 -->
+    <color name="screenlog_color_tab_page_secondary_block_unselected_text">#666666</color>
+
+    <!-- ===== tzzb/color/tab/segment ===== -->
+
+    <!-- Figma: tzzb/color/tab/segment/selected -->
+    <!-- 应用场景：分段式 Tab 当前选中项背景 -->
+    <color name="screenlog_color_tab_segment_selected">#FFFFFF</color>
+
+    <!-- Figma: tzzb/color/tab/segment/unselected -->
+    <!-- 应用场景：分段式 Tab 未选中项背景 -->
+    <color name="screenlog_color_tab_segment_unselected">#F4F5F7</color>
+
+    <!-- Figma: tzzb/color/tab/segment/divider -->
+    <!-- 应用场景：分段式 Tab 项间分割线 -->
+    <color name="screenlog_color_tab_segment_divider">#EEEEEE</color>
+
+    <!-- ===== tzzb/color/switch ===== -->
+
+    <!-- Figma: tzzb/color/switch/thumb/default -->
+    <!-- 应用场景：开关滑块 -->
+    <color name="screenlog_color_switch_thumb_default">#FFFFFF</color>
+
+    <!-- Figma: tzzb/color/switch/thumb/disabled -->
+    <!-- 应用场景：开关滑块禁用 -->
+    <color name="screenlog_color_switch_thumb_disabled">#80FFFFFF</color>
+
+    <!-- Figma: tzzb/color/switch/track/on -->
+    <!-- 应用场景：开关滑轨开启 -->
+    <color name="screenlog_color_switch_track_on">#FF4134</color>
+
+    <!-- Figma: tzzb/color/switch/track/off -->
+    <!-- 应用场景：开关滑轨关闭 -->
+    <color name="screenlog_color_switch_track_off">#EEEEEE</color>
+
+    <!-- ===== tzzb/color/Divider ===== -->
+
+    <!-- Figma: tzzb/color/Divider/default -->
+    <!-- 应用场景：分割线 -->
+    <color name="screenlog_color_divider_default">#F2F2F2</color>
+
+    <!-- Figma: tzzb/color/Divider/chart_grid_line -->
+    <!-- 应用场景：图表网格线 -->
+    <color name="screenlog_color_divider_chart_grid_line">#EEEEEE</color>
+
+    <!-- ===== tzzb/color/text ===== -->
+
+    <!-- Figma: tzzb/color/text/primary -->
+    <!-- 应用场景：文本1 / 一级标题文字 / 正文及重要文字信息 -->
+    <color name="screenlog_color_text_primary">#333333</color>
+
+    <!-- Figma: tzzb/color/text/secondary -->
+    <!-- 应用场景：文本2 / 二级标题文字 / 次要文字信息 -->
+    <color name="screenlog_color_text_secondary">#666666</color>
+
+    <!-- Figma: tzzb/color/text/tertiary -->
+    <!-- 应用场景：文本3 / 三级标题文字 / 辅助信息 -->
+    <color name="screenlog_color_text_tertiary">#999999</color>
+
+    <!-- Figma: tzzb/color/text/quaternary -->
+    <!-- 应用场景：文本4 / 四级标题文字 -->
+    <color name="screenlog_color_text_quaternary">#CCCCCC</color>
+
+    <!-- Figma: tzzb/color/text/disabled -->
+    <!-- 应用场景：文本4 / 禁用文字 / 不可点击文字 -->
+    <color name="screenlog_color_text_disabled">#CCCCCC</color>
+
+    <!-- Figma: tzzb/color/text/warning -->
+    <!-- 应用场景：警示文案 / 浅色标签文案 -->
+    <color name="screenlog_color_text_warning">#FF4134</color>
+
+    <!-- Figma: tzzb/color/text/link -->
+    <!-- 应用场景：跳转文案 / 浅色标签文案 -->
+    <color name="screenlog_color_text_link">#4381FF</color>
+
+    <!-- ===== tzzb/color/text/inverse ===== -->
+
+    <!-- Figma: tzzb/color/text/inverse/primary -->
+    <!-- 应用场景：反白文字主文案 -->
+    <color name="screenlog_color_text_inverse_primary">#FFFFFF</color>
+
+    <!-- Figma: tzzb/color/text/inverse/secondary -->
+    <!-- 应用场景：反白文字次级文案 -->
+    <color name="screenlog_color_text_inverse_secondary">#B3FFFFFF</color>
+
+    <!-- ===== tzzb/color/brand ===== -->
+
+    <!-- Figma: tzzb/color/brand/primary -->
+    <!-- 应用场景：账本品牌色 -->
+    <color name="screenlog_color_brand_primary">#FF4134</color>
+
+    <!-- ===== tzzb/color/market ===== -->
+
+    <!-- Figma: tzzb/color/market/up -->
+    <!-- 应用场景：上涨/正收益/正涨幅等金融市场语义 -->
+    <color name="screenlog_color_market_up">#FF4134</color>
+
+    <!-- Figma: tzzb/color/market/down -->
+    <!-- 应用场景：下跌/负收益/负涨幅等金融市场语义 -->
+    <color name="screenlog_color_market_down">#4381FF</color>
+
+    <!-- ===== tzzb/color/feature ===== -->
+
+    <!-- Figma: tzzb/color/feature/ai_feature -->
+    <!-- 应用场景：AI/智能能力专属色 -->
+    <color name="screenlog_color_feature_ai_feature">#6139FF</color>
+
+    <!-- Figma: tzzb/color/feature/feature_accent -->
+    <!-- 应用场景：特色功能/差异化能力强调色 -->
+    <color name="screenlog_color_feature_feature_accent">#B341D9</color>
+
+    <!-- Figma: tzzb/color/feature/warning -->
+    <!-- 应用场景：警告/风险提示色 -->
+    <color name="screenlog_color_feature_warning">#FF9500</color>
+
+    <!-- Figma: tzzb/color/feature/yellow -->
+    <!-- 应用场景：提醒/待关注状态色 -->
+    <color name="screenlog_color_feature_yellow">#FFBE19</color>
+
+    <!-- Figma: tzzb/color/feature/success -->
+    <!-- 应用场景：成功/完成/正常状态色 -->
+    <color name="screenlog_color_feature_success">#29B393</color>
+
+    <!-- Figma: tzzb/color/feature/sky_blue -->
+    <!-- 应用场景：信息提示/辅助功能强调色 -->
+    <color name="screenlog_color_feature_sky_blue">#009FFF</color>
+
+</resources>

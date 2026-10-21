@@ -32,27 +32,27 @@
 .\gradlew.bat :screen-log:exportReleaseAar
 ```
 
-默认版本来自根目录 `gradle.properties` 中的 `screenLogVersion=1.0.5_SNAPSHOT`。每次交付包含新改动的 AAR 都必须递增版本号，不得沿用旧版本号覆盖交付；同步更新构建脚本的默认版本和本文接入示例。在确认版本上线前，版本号统一保留 `_SNAPSHOT` 后缀，产物路径为：
+版本号只在根目录 `gradle.properties` 的 `screenLogVersion` 中维护。每次交付包含新改动的 AAR 都必须递增版本号，不得沿用旧版本号覆盖交付。在确认版本上线前，版本号保留 `_SNAPSHOT` 后缀，产物路径为：
 
 ```text
-artifacts/screen-log-1.0.5_SNAPSHOT.aar
+artifacts/screen-log-<screenLogVersion>.aar
 ```
 
-确认上线后，可以直接通过命令行传入正式版本号，不需要修改构建脚本：
+确认上线后，在 `gradle.properties` 中将 `screenLogVersion` 改为正式版本号，再执行相同的导出命令。
 
 ```powershell
-.\gradlew.bat :screen-log:exportReleaseAar -PscreenLogVersion=1.0.5
+.\gradlew.bat :screen-log:exportReleaseAar
 ```
 
 `artifacts/` 已加入 `.gitignore`，生成的二进制文件不会被误提交。
 
 ## 在其他项目中接入 AAR
 
-将生成的 AAR 复制到目标项目的 `app/libs/`，然后在目标 App 模块的 `build.gradle.kts` 中声明：
+将生成的 AAR 复制到目标项目的 `app/libs/`，重命名为固定文件名 `screen-log.aar`，然后在目标 App 模块的 `build.gradle.kts` 中声明。升级时替换该文件即可，无需修改依赖声明：
 
 ```kotlin
 dependencies {
-    implementation(files("libs/screen-log-1.0.5_SNAPSHOT.aar"))
+    implementation(files("libs/screen-log.aar"))
 
     implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
@@ -111,7 +111,7 @@ class App : Application() {
 }
 ```
 
-全新安装首次初始化时，“记录日志”默认关闭，也不显示日志入口。测试人员首次调用 `open(activity)` 后会持久化录制状态；下次冷启动时，`ScreenLogKit.init` 会恢复录制，因此可记录初始化之后的启动日志。文件持久化独立控制且默认关闭。
+全新安装首次初始化时，总开关和“记录日志”均默认关闭，也不显示日志入口。测试人员首次调用 `open(activity)` 后会持久化总开关及录制状态；下次冷启动时，`ScreenLogKit.init` 会分别恢复入口和录制，因此可记录初始化之后的启动日志。文件持久化独立控制且默认关闭。
 
 ### 3. 测试入口的开启和关闭
 
@@ -122,7 +122,9 @@ ScreenLogKit.open(this)  // 开启录制并显示悬浮入口
 ScreenLogKit.close()     // 停止录制并隐藏悬浮入口和面板
 ```
 
-`open` 不重置已保存的接口开关、文件保存或其他设置。`close` 不清空已有日志。重启后如果录制状态为开启，组件会同时恢复悬浮入口；日志面板由测试人员从悬浮入口打开。
+`open` 不重置已保存的接口开关、文件保存或其他设置。`close` 不清空已有日志。重启后如果总开关为开启，组件会恢复悬浮入口；日志面板由测试人员从悬浮入口打开。
+
+业务 App 的“屏幕日志”总开关应以 `ScreenLogKit.isOpen()` 为准：打开测试弹窗时读取它显示开关状态，用户操作时只调用 `open(activity)` 或 `close()`，不再单独保存同一开关到业务 SP。`isOpen()` 对 Java 也提供静态调用方式。组件菜单中的“记录日志”是独立的暂停开关；暂停后悬浮入口仍保持开启，重启后也可从入口恢复记录。旧版组件只保存过录制状态，升级后首次初始化会用该状态迁移总开关。
 
 ### 4. 写入业务日志
 
@@ -181,7 +183,7 @@ ScreenLog.e(tag, message, throwable = null, prettyJson = false, extras = null)
 - `记录日志` Switch：控制是否接收新日志，关闭后已有日志保持不变。
 - `接口日志`：默认配置和手动新增的接口统一管理，均可开启或关闭；只有手动新增的接口可删除。开关状态在重启后保留，删除后该接口按普通接口记录。
 - `保存日志到文件` Switch：默认关闭；开启后仅后续日志进入文件队列。
-- `自动滚动` Switch：控制列表是否跟随最新日志。
+- `自动滚动` Switch：开启时仅在列表已停留底部才跟随新日志；上滑查看历史后暂停跟随，并显示“↓ 最新”按钮，点击或手动回到底部即可恢复跟随。
 - 面板默认占屏幕高度 `1/3`，双击面板切换到 `2/3`，再次双击恢复。
 - 顶部“全屏”可展开至整个页面，按钮变为“收起”；收起恢复进入全屏前的小屏或中屏尺寸。全屏期间双击不改变此前尺寸。
 - 面板不再展示“记录日志”和“自动滚动”开关，这两项可在悬浮菜单或设置页调整；顶部“清空屏幕”仅清内存。
@@ -191,7 +193,7 @@ ScreenLog.e(tag, message, throwable = null, prettyJson = false, extras = null)
 - 关闭“自动滚动”只停止列表跟随，不影响日志记录。
 - 悬浮入口支持拖动并自动吸附左右边缘，快捷菜单会限制在当前页面范围内，矮屏下可滚动操作。
 - 面板和快捷菜单中的“清空日志”仅清空内存并刷新列表，保留已保存文件；设置页的清空操作仍删除内存和文件。
-- 请求日志在正文首尾显示 URL 与 `REQUEST` / `RESPONSE` 阶段，相邻日志使用深浅交替背景。
+- 请求日志首行以浅色显示一次接口与 `REQUEST` / `RESPONSE` 阶段，下一行起展示正文；相邻日志使用深浅交替背景。传入 `prettyJson=true` 时，JSON 正文会自动缩进。
 
 调用方需显式传入 `phase = ScreenLogRequestPhase.REQUEST`（请求参数）或 `phase = ScreenLogRequestPhase.RESPONSE`（响应结果）；组件不会根据正文自动判断。原接口省略 `phase` 时默认为请求参数。Java 调用示例：
 
@@ -218,9 +220,10 @@ ScreenLog.request("/api/orders", ScreenLogRequestPhase.RESPONSE, () -> responseB
 
 | API | 用途 |
 | --- | --- |
-| `ScreenLogKit.init(application, hiddenRequestInterfaces)` | 在 Application 中初始化一次，恢复已保存的录制和接口状态 |
+| `ScreenLogKit.init(application, hiddenRequestInterfaces)` | 在 Application 中初始化一次，恢复已保存的总开关、录制和接口状态 |
 | `ScreenLogKit.open(activity)` | 开启录制并显示悬浮入口 |
 | `ScreenLogKit.close()` | 停止录制并隐藏悬浮入口和面板 |
+| `ScreenLogKit.isOpen()` | 读取已保存的总开关状态，供业务入口显示使用 |
 | `ScreenLog.v/d/i/w/e(...)` | 写入对应等级的业务日志 |
 | `ScreenLog.request(api, ..., messageProvider)` | 按 API 开关决定是否调用 provider 并写入请求日志 |
 

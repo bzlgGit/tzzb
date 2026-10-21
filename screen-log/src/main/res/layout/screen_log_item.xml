@@ -20,12 +20,22 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
+        android:id="@+id/screenLogIndex"
+        android:layout_width="34dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/screen_log_text_secondary"
+        android:textSize="11sp"
+        app:layout_constraintStart_toEndOf="@id/screenLogSelection"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
         android:id="@+id/screenLogTime"
         android:layout_width="84dp"
         android:layout_height="wrap_content"
         android:textColor="@color/screen_log_text_secondary"
         android:textSize="11sp"
-        app:layout_constraintStart_toEndOf="@id/screenLogSelection"
+        app:layout_constraintStart_toEndOf="@id/screenLogIndex"
         app:layout_constraintTop_toBottomOf="@id/screenLogMessage" />
 
     <TextView
@@ -53,15 +63,31 @@
         app:layout_constraintTop_toTopOf="@id/screenLogTime" />
 
     <TextView
+        android:id="@+id/screenLogRequestHeader"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/screen_log_text_secondary"
+        android:textSize="11sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/screenLogIndex"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
         android:id="@+id/screenLogMessage"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
+        android:layout_marginTop="2dp"
         android:textColor="@color/screen_log_text_primary"
         android:textSize="13sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/screenLogSelection"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toEndOf="@id/screenLogIndex"
+        app:layout_constraintTop_toBottomOf="@id/screenLogRequestHeader"
+        app:layout_goneMarginTop="0dp" />
 
     <TextView
         android:id="@+id/screenLogExtras"

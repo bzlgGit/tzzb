@@ -53,6 +53,7 @@ internal class ScreenLogPanelView(
     private var restoreScrollPending = state.listPosition >= 0
     private var selectionMode = false
     private var autoScrollWasPaused = false
+    private var userScrollGeneration = 0L
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent): Boolean = true
@@ -98,10 +99,13 @@ internal class ScreenLogPanelView(
         binding.screenLogList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 saveListPosition()
+                updateJumpToLatestVisibility()
             }
 
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) userScrollGeneration++
                 saveListPosition()
+                updateJumpToLatestVisibility()
             }
         })
         setupFilters()
@@ -231,9 +235,17 @@ internal class ScreenLogPanelView(
         binding.screenLogSelectionClose.setOnClickListener { exitSelectionMode() }
         binding.screenLogSelectionAll.setOnClickListener { toggleSelectAll() }
         binding.screenLogSelectionCopy.setOnClickListener { copySelectedEntries() }
+        binding.screenLogJumpToLatest.setOnClickListener {
+            if (adapter.itemCount > 0) {
+                binding.screenLogList.scrollToPosition(adapter.itemCount - 1)
+                binding.screenLogList.post { updateJumpToLatestVisibility() }
+            }
+        }
     }
 
     private fun refreshNow() {
+        val wasAtBottom = !binding.screenLogList.canScrollVertically(1)
+        val scrollGeneration = userScrollGeneration
         val entries = ScreenLogDispatcher.snapshot()
         updateTags(entries.map { it.tag }.distinct().sorted())
         filteredEntries = ScreenLogFilterMatcher.filter(entries, filter)
@@ -245,10 +257,22 @@ internal class ScreenLogPanelView(
             if (selectionMode) updateSelectionToolbar()
             if (restoreScrollPending) {
                 restoreListPosition()
-            } else if (!ScreenLogDispatcher.isAutoScrollPaused() && filteredEntries.isNotEmpty()) {
+            } else if (filteredEntries.isNotEmpty() && ScreenLogAutoScrollPolicy.shouldFollow(
+                    paused = ScreenLogDispatcher.isAutoScrollPaused(),
+                    atBottom = wasAtBottom,
+                    userScrolling = binding.screenLogList.scrollState != RecyclerView.SCROLL_STATE_IDLE ||
+                        userScrollGeneration != scrollGeneration
+                )) {
                 binding.screenLogList.scrollToPosition(filteredEntries.lastIndex)
             }
+            binding.screenLogList.post { updateJumpToLatestVisibility() }
         }
+    }
+
+    private fun updateJumpToLatestVisibility() {
+        binding.screenLogJumpToLatest.visibility = if (
+            adapter.itemCount > 0 && binding.screenLogList.canScrollVertically(1)
+        ) View.VISIBLE else View.GONE
     }
 
     private fun updateTags(tags: List<String>) {

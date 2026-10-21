@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="screen_log_bg">#F4F5F7</color>
-    <color name="screen_log_row_dark">#E61D1F23</color>
-    <color name="screen_log_row_light">#E632353A</color>
+    <color name="screen_log_row_dark">#66000000</color>
+    <color name="screen_log_row_light">#40000000</color>
     <color name="screen_log_panel_bg">#8C000000</color>
     <color name="screen_log_surface">#F21D1F23</color>
     <color name="screen_log_field_bg">#E627292C</color>
@@ -16,6 +16,7 @@
     <color name="screen_log_info">#4381FF</color>
     <color name="screen_log_debug">#B3FFFFFF</color>
     <color name="screen_log_success">#29B393</color>
+    <color name="screen_log_entry_content">#073E33</color>
     <color name="screen_log_selected_bg">#33FF4134</color>
     <color name="screen_log_page_text_primary">#333333</color>
     <color name="screen_log_page_text_secondary">#666666</color>

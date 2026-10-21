@@ -26,6 +26,7 @@ class ScreenLogKitLifecycleTest {
         val application = instrumentation.targetContext.applicationContext as Application
         val preferences = application.getSharedPreferences("screen_log_preferences", Context.MODE_PRIVATE)
         val previousRecording = preferences.getBoolean("recording_enabled", false)
+        val previousEntry = preferences.getBoolean("entry_enabled", false)
         val mainActivity = launchActivity(instrumentation, application)
         val monitor = instrumentation.addMonitor(SecondPageActivity::class.java.name, null, false)
         var secondActivity: Activity? = null
@@ -65,7 +66,8 @@ class ScreenLogKitLifecycleTest {
                 secondActivity?.finish()
                 mainActivity.finish()
             }
-            preferences.edit().putBoolean("recording_enabled", previousRecording).commit()
+            preferences.edit().putBoolean("recording_enabled", previousRecording)
+                .putBoolean("entry_enabled", previousEntry).commit()
             ScreenLogKit.init(application)
         }
     }
@@ -76,6 +78,7 @@ class ScreenLogKitLifecycleTest {
         val application = instrumentation.targetContext.applicationContext as Application
         val preferences = application.getSharedPreferences("screen_log_preferences", Context.MODE_PRIVATE)
         val previousRecording = preferences.getBoolean("recording_enabled", false)
+        val previousEntry = preferences.getBoolean("entry_enabled", false)
         var activity = launchActivity(instrumentation, application)
 
         try {
@@ -101,7 +104,8 @@ class ScreenLogKitLifecycleTest {
             assertFalse("菜单关闭后重启不应显示悬浮入口", entryVisible)
         } finally {
             instrumentation.runOnMainSync { ScreenLogKit.close() }
-            preferences.edit().putBoolean("recording_enabled", previousRecording).commit()
+            preferences.edit().putBoolean("recording_enabled", previousRecording)
+                .putBoolean("entry_enabled", previousEntry).commit()
             ScreenLogKit.init(application)
             instrumentation.runOnMainSync { activity.finish() }
         }
@@ -113,11 +117,13 @@ class ScreenLogKitLifecycleTest {
         val application = instrumentation.targetContext.applicationContext as Application
         val preferences = application.getSharedPreferences("screen_log_preferences", Context.MODE_PRIVATE)
         val previousRecording = preferences.getBoolean("recording_enabled", false)
+        val previousEntry = preferences.getBoolean("entry_enabled", false)
         var activity = launchActivity(instrumentation, application)
 
         try {
             instrumentation.runOnMainSync { ScreenLogKit.close() }
-            preferences.edit().putBoolean("recording_enabled", true).commit()
+            preferences.edit().putBoolean("recording_enabled", true)
+                .putBoolean("entry_enabled", true).commit()
             ScreenLogKit.init(application)
 
             instrumentation.runOnMainSync { activity.finish() }
@@ -133,7 +139,8 @@ class ScreenLogKitLifecycleTest {
             assertTrue("录制恢复后应自动显示悬浮入口", entryVisible)
         } finally {
             instrumentation.runOnMainSync { ScreenLogKit.close() }
-            preferences.edit().putBoolean("recording_enabled", previousRecording).commit()
+            preferences.edit().putBoolean("recording_enabled", previousRecording)
+                .putBoolean("entry_enabled", previousEntry).commit()
             ScreenLogKit.init(application)
             instrumentation.runOnMainSync { activity.finish() }
         }
@@ -145,13 +152,15 @@ class ScreenLogKitLifecycleTest {
         val application = instrumentation.targetContext.applicationContext as Application
         val preferences = application.getSharedPreferences("screen_log_preferences", Context.MODE_PRIVATE)
         val previousRecording = preferences.getBoolean("recording_enabled", false)
+        val previousEntry = preferences.getBoolean("entry_enabled", false)
         val intent = Intent(application, MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         val activity = instrumentation.startActivitySync(intent) as Activity
 
         try {
-            preferences.edit().putBoolean("recording_enabled", false).commit()
+            preferences.edit().putBoolean("recording_enabled", false)
+                .putBoolean("entry_enabled", false).commit()
             ScreenLogKit.init(application)
             assertFalse(providerWasCalled())
 
@@ -166,9 +175,69 @@ class ScreenLogKitLifecycleTest {
             assertFalse(providerWasCalled())
         } finally {
             instrumentation.runOnMainSync { ScreenLogKit.close() }
-            preferences.edit().putBoolean("recording_enabled", previousRecording).commit()
+            preferences.edit().putBoolean("recording_enabled", previousRecording)
+                .putBoolean("entry_enabled", previousEntry).commit()
             ScreenLogKit.init(application)
             instrumentation.runOnMainSync { activity.finish() }
+        }
+    }
+
+    @Test
+    fun pausedRecordingKeepsTheEntryEnabledAfterReinitialization() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val application = instrumentation.targetContext.applicationContext as Application
+        val preferences = application.getSharedPreferences("screen_log_preferences", Context.MODE_PRIVATE)
+        val previousRecording = preferences.getBoolean("recording_enabled", false)
+        val previousEntry = preferences.getBoolean("entry_enabled", false)
+        val activity = launchActivity(instrumentation, application)
+
+        try {
+            instrumentation.runOnMainSync {
+                ScreenLogKit.open(activity)
+                val content = activity.findViewById<ViewGroup>(android.R.id.content)
+                findTextView(content, activity.getString(ScreenLogR.string.screen_log_entry))!!.performClick()
+                findTextView(content, activity.getString(ScreenLogR.string.screen_log_recording))!!.performClick()
+                assertTrue(ScreenLogKit.isOpen())
+            }
+            assertFalse(providerWasCalled())
+
+            instrumentation.runOnMainSync {
+                ScreenLogKit.init(application)
+                val content = activity.findViewById<ViewGroup>(android.R.id.content)
+                assertTrue(findTextView(content, activity.getString(ScreenLogR.string.screen_log_entry)) != null)
+                assertTrue(ScreenLogKit.isOpen())
+            }
+        } finally {
+            instrumentation.runOnMainSync {
+                ScreenLogKit.close()
+                activity.finish()
+            }
+            preferences.edit().putBoolean("recording_enabled", previousRecording)
+                .putBoolean("entry_enabled", previousEntry).commit()
+            ScreenLogKit.init(application)
+        }
+    }
+
+    @Test
+    fun legacyRecordingStateMigratesToTheEntrySwitchOnlyOnce() {
+        val application = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application
+        val preferences = application.getSharedPreferences("screen_log_preferences", Context.MODE_PRIVATE)
+        val previousRecording = preferences.getBoolean("recording_enabled", false)
+        val previousEntry = preferences.getBoolean("entry_enabled", false)
+
+        try {
+            preferences.edit().remove("entry_enabled").putBoolean("recording_enabled", true).commit()
+            ScreenLogKit.init(application)
+            assertTrue(ScreenLogKit.isOpen())
+
+            preferences.edit().putBoolean("recording_enabled", false).commit()
+            ScreenLogKit.init(application)
+            assertTrue("录制暂停后，已迁移的总开关不应被覆盖", ScreenLogKit.isOpen())
+        } finally {
+            ScreenLogKit.close()
+            preferences.edit().putBoolean("recording_enabled", previousRecording)
+                .putBoolean("entry_enabled", previousEntry).commit()
+            ScreenLogKit.init(application)
         }
     }
 

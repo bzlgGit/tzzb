@@ -49,6 +49,7 @@
     <string name="screen_log_persistence">保存日志到文件</string>
     <string name="screen_log_persistence_hint">默认关闭；开启后优先保存到 App 外部存储</string>
     <string name="screen_log_auto_scroll">自动滚动</string>
+    <string name="screen_log_jump_to_latest">↓ 最新</string>
     <string name="screen_log_touch_target">触摸目标</string>
     <string name="screen_log_touch_log_panel">日志面板</string>
     <string name="screen_log_touch_underlying_page">下层页面</string>
@@ -58,7 +59,8 @@
     <string name="screen_log_copy_tag">Tag</string>
     <string name="screen_log_copy_thread">线程名</string>
     <string name="screen_log_copy_extras">附加信息</string>
-    <string name="screen_log_export_logs">导出日志</string>
+    <string name="screen_log_export_logs">导出全部日志</string>
+    <string name="screen_log_export_scope_hint">包含已保存的日志文件和当前内存日志，不受屏幕筛选条件影响。</string>
     <string name="screen_log_export_success_title">日志导出成功</string>
     <string name="screen_log_export_success_message">文件已保存到刚才选择的位置，可以直接打开查看。</string>
     <string name="screen_log_open_export">打开文件</string>

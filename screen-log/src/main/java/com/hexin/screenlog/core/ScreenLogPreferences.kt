@@ -18,6 +18,20 @@ internal class ScreenLogPreferences(context: Context) {
         preferences.edit().putBoolean(KEY_RECORDING_ENABLED, enabled).commit()
     }
 
+    fun entryEnabled(): Boolean {
+        if (preferences.contains(KEY_ENTRY_ENABLED)) {
+            return preferences.getBoolean(KEY_ENTRY_ENABLED, false)
+        }
+        // 旧版本以录制状态恢复入口；首次读取时迁移一次，之后两种状态独立保存。
+        val enabled = recordingEnabled(false)
+        preferences.edit().putBoolean(KEY_ENTRY_ENABLED, enabled).commit()
+        return enabled
+    }
+
+    fun setEntryEnabled(enabled: Boolean) {
+        preferences.edit().putBoolean(KEY_ENTRY_ENABLED, enabled).commit()
+    }
+
     fun persistEnabled(defaultValue: Boolean): Boolean =
         preferences.getBoolean(KEY_PERSIST_ENABLED, defaultValue)
 
@@ -98,6 +112,7 @@ internal class ScreenLogPreferences(context: Context) {
     private companion object {
         const val PREFERENCE_NAME = "screen_log_preferences"
         const val KEY_RECORDING_ENABLED = "recording_enabled"
+        const val KEY_ENTRY_ENABLED = "entry_enabled"
         const val KEY_PERSIST_ENABLED = "persist_enabled"
         const val KEY_AUTO_SCROLL_ENABLED = "auto_scroll_enabled"
         const val KEY_TOUCH_MODE = "touch_mode"

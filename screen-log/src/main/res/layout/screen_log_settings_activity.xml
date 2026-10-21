@@ -239,6 +239,14 @@
                 android:textAllCaps="false"
                 android:textColor="@color/screen_log_brand" />
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/screen_log_export_scope_hint"
+                android:textColor="@color/screen_log_page_text_secondary"
+                android:textSize="12sp" />
+
             <Button
                 android:id="@+id/screenLogClearAll"
                 android:layout_width="match_parent"

@@ -42,7 +42,7 @@
             android:minWidth="60dp"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
-            android:text="@string/screen_log_copy_action"
+            android:text="@string/screen_log_copy_filtered"
             android:textColor="@color/screen_log_text_primary"
             android:textSize="12sp" />
 
@@ -208,4 +208,23 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/screenLogLevel" />
+
+    <TextView
+        android:id="@+id/screenLogJumpToLatest"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/screen_log_jump_to_latest_bg"
+        android:elevation="6dp"
+        android:gravity="center"
+        android:minWidth="64dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:text="@string/screen_log_jump_to_latest"
+        android:textColor="@color/screen_log_text_primary"
+        android:textSize="12sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/screenLogList"
+        app:layout_constraintEnd_toEndOf="@id/screenLogList" />
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -29,7 +29,7 @@ class ScreenLogAdapter(
     }
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
-        holder.bind(getItem(position))
+        holder.bind(getItem(position), position)
     }
 
     inner class Holder(
@@ -46,13 +46,16 @@ class ScreenLogAdapter(
             }
         }
 
-        fun bind(entry: ScreenLogEntry) {
+        fun bind(entry: ScreenLogEntry, position: Int) {
             binding.screenLogTime.text = ScreenLogFormatter.formatTime(entry.timeMillis)
             binding.screenLogLevelText.text = entry.level.name.take(1)
             binding.screenLogLevelText.setTextColor(ContextCompat.getColor(itemView.context, colorFor(entry.level)))
             binding.screenLogTagText.text = entry.tag
-            binding.screenLogMessage.text = ScreenLogFormatter.formatMessage(entry)
-            val extrasText = entry.extras.orEmpty().entries.joinToString { "${it.key}=${it.value}" }
+            val requestLabel = ScreenLogFormatter.requestLabel(entry)
+            binding.screenLogRequestHeader.text = requestLabel
+            binding.screenLogRequestHeader.visibility = if (requestLabel == null) View.GONE else View.VISIBLE
+            binding.screenLogMessage.text = ScreenLogFormatter.formatBody(entry)
+            val extrasText = ScreenLogFormatter.visibleExtras(entry).entries.joinToString { "${it.key}=${it.value}" }
             binding.screenLogExtras.text = extrasText
             binding.screenLogExtras.visibility = if (extrasText.isBlank()) View.GONE else View.VISIBLE
             val selected = selectedEntries.contains(entry)
@@ -60,14 +63,15 @@ class ScreenLogAdapter(
             binding.screenLogSelection.setImageResource(
                 if (selected) R.drawable.screen_log_ic_checked else R.drawable.screen_log_ic_checkbox
             )
-            bindBackground()
+            bindPosition(position)
         }
 
-        fun bindBackground() {
+        fun bindPosition(position: Int) {
+            binding.screenLogIndex.text = (position + 1).toString()
             val selected = currentEntry()?.let(selectedEntries::contains) == true
             binding.root.setBackgroundResource(
                 if (selected) R.drawable.screen_log_item_selected_bg
-                else if (bindingAdapterPosition % 2 == 0) R.color.screen_log_row_dark
+                else if (position % 2 == 0) R.color.screen_log_row_dark
                 else R.color.screen_log_row_light
             )
         }
@@ -79,18 +83,18 @@ class ScreenLogAdapter(
     }
 
     override fun onBindViewHolder(holder: Holder, position: Int, payloads: MutableList<Any>) {
-        if (payloads.isNotEmpty() && payloads.all { it == ROW_BACKGROUND }) holder.bindBackground()
+        if (payloads.isNotEmpty() && payloads.all { it == ROW_POSITION }) holder.bindPosition(position)
         else super.onBindViewHolder(holder, position, payloads)
     }
 
     override fun onCurrentListChanged(previousList: MutableList<ScreenLogEntry>, currentList: MutableList<ScreenLogEntry>) {
         super.onCurrentListChanged(previousList, currentList)
-        // 淘汰旧日志或筛选后，原有条目的奇偶位置也可能改变。
-        notifyItemRangeChanged(0, itemCount, ROW_BACKGROUND)
+        // 淘汰旧日志或筛选后，原有条目的序号和交替背景可能改变。
+        notifyItemRangeChanged(0, itemCount, ROW_POSITION)
     }
 
     private companion object {
-        const val ROW_BACKGROUND = "row_background"
+        const val ROW_POSITION = "row_position"
     }
 
     fun setSelectionMode(enabled: Boolean) {
