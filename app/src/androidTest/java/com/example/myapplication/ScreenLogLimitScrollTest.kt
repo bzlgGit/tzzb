@@ -34,6 +34,75 @@ import kotlin.math.abs
 class ScreenLogLimitScrollTest {
 
     @Test
+    fun oversizedLogJumpReachesBottomAndResumesFollowing() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val application = instrumentation.targetContext.applicationContext as Application
+        val preferences = application.getSharedPreferences("screen_log_preferences", android.content.Context.MODE_PRIVATE)
+        val previousRecording = preferences.getBoolean("recording_enabled", false)
+        val previousEntry = preferences.getBoolean("entry_enabled", false)
+        val previousAutoScroll = preferences.getBoolean("auto_scroll_enabled", true)
+        preferences.edit().putBoolean("auto_scroll_enabled", true).commit()
+        val activity = instrumentation.startActivitySync(
+            Intent(application, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+        try {
+            instrumentation.runOnMainSync {
+                activity.setShowWhenLocked(true)
+                activity.setTurnScreenOn(true)
+                ScreenLogKit.open(activity)
+                ScreenLogDispatcher.clear()
+                val content = activity.findViewById<ViewGroup>(android.R.id.content)
+                findTextView(content, activity.getString(ScreenLogR.string.screen_log_entry))!!.performClick()
+                findTextView(content, activity.getString(ScreenLogR.string.screen_log_panel_visible))!!.performClick()
+            }
+            ScreenLog.i("OversizedLogTest", "first\n" + "large log line\n".repeat(600))
+            val list = activity.findViewById<RecyclerView>(ScreenLogR.id.screenLogList)
+            val jumpToTop = activity.findViewById<TextView>(ScreenLogR.id.screenLogJumpToTop)
+            val jumpToBottom = activity.findViewById<TextView>(ScreenLogR.id.screenLogJumpToLatest)
+            instrumentation.runOnMainSync {
+                assertEquals("↑ 顶部", jumpToTop.text.toString())
+                assertEquals("↓ 底部", jumpToBottom.text.toString())
+            }
+            waitFor(instrumentation) {
+                (list.adapter as? ScreenLogAdapter)?.currentList?.lastOrNull()?.message?.startsWith("first") == true
+            }
+            instrumentation.runOnMainSync { ScreenLogDispatcher.setAutoScrollPaused(true) }
+            instrumentation.runOnMainSync {
+                val last = list.adapter!!.itemCount - 1
+                (list.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(last, 0)
+            }
+            waitFor(instrumentation) { list.canScrollVertically(1) && jumpToBottom.isShown }
+
+            instrumentation.runOnMainSync { jumpToBottom.performClick() }
+            waitFor(instrumentation) { !list.canScrollVertically(1) && !jumpToBottom.isShown }
+
+            instrumentation.runOnMainSync { ScreenLogDispatcher.setAutoScrollPaused(false) }
+            ScreenLog.i("OversizedLogTest", "next\n" + "more large log text\n".repeat(600))
+            waitFor(instrumentation) {
+                (list.adapter as ScreenLogAdapter).currentList.lastOrNull()?.message?.startsWith("next") == true &&
+                    !list.canScrollVertically(1) && !jumpToBottom.isShown
+            }
+            waitFor(instrumentation) { jumpToTop.isShown }
+            instrumentation.runOnMainSync { jumpToTop.performClick() }
+            waitFor(instrumentation) {
+                !list.canScrollVertically(-1) && !jumpToTop.isShown && jumpToBottom.isShown
+            }
+            instrumentation.runOnMainSync { jumpToBottom.performClick() }
+            waitFor(instrumentation) { !list.canScrollVertically(1) && !jumpToBottom.isShown }
+        } finally {
+            instrumentation.runOnMainSync {
+                ScreenLogDispatcher.setAutoScrollPaused(false)
+                ScreenLogKit.close()
+                activity.finish()
+            }
+            preferences.edit().putBoolean("recording_enabled", previousRecording)
+                .putBoolean("entry_enabled", previousEntry)
+                .putBoolean("auto_scroll_enabled", previousAutoScroll).commit()
+            ScreenLogKit.init(application)
+        }
+    }
+
+    @Test
     fun evictingOldLogsKeepsVisibleEntryInPlace() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val application = instrumentation.targetContext.applicationContext as Application

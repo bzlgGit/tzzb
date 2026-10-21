@@ -53,7 +53,8 @@
     <string name="screen_log_persistence">保存日志到文件</string>
     <string name="screen_log_persistence_hint">默认关闭；开启后优先保存到 App 外部存储</string>
     <string name="screen_log_auto_scroll">自动滚动</string>
-    <string name="screen_log_jump_to_latest">↓ 最新</string>
+    <string name="screen_log_jump_to_top">↑ 顶部</string>
+    <string name="screen_log_jump_to_latest">↓ 底部</string>
     <string name="screen_log_touch_target">触摸目标</string>
     <string name="screen_log_touch_log_panel">日志面板</string>
     <string name="screen_log_touch_underlying_page">下层页面</string>

@@ -18,6 +18,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.core.view.doOnNextLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.hexin.screenlog.R
@@ -99,13 +100,13 @@ internal class ScreenLogPanelView(
         binding.screenLogList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 saveListPosition()
-                updateJumpToLatestVisibility()
+                updateJumpButtonsVisibility()
             }
 
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 if (newState == RecyclerView.SCROLL_STATE_DRAGGING) userScrollGeneration++
                 saveListPosition()
-                updateJumpToLatestVisibility()
+                updateJumpButtonsVisibility()
             }
         })
         setupFilters()
@@ -226,11 +227,17 @@ internal class ScreenLogPanelView(
         binding.screenLogSelectionClose.setOnClickListener { exitSelectionMode() }
         binding.screenLogSelectionAll.setOnClickListener { toggleSelectAll() }
         binding.screenLogSelectionCopy.setOnClickListener { copySelectedEntries() }
+        binding.screenLogJumpToTop.setOnClickListener {
+            binding.screenLogList.stopScroll()
+            userScrollGeneration++
+            (binding.screenLogList.layoutManager as? LinearLayoutManager)
+                ?.scrollToPositionWithOffset(0, 0)
+            binding.screenLogList.post { updateJumpButtonsVisibility() }
+        }
         binding.screenLogJumpToLatest.setOnClickListener {
-            if (adapter.itemCount > 0) {
-                binding.screenLogList.scrollToPosition(adapter.itemCount - 1)
-                binding.screenLogList.post { updateJumpToLatestVisibility() }
-            }
+            binding.screenLogList.stopScroll()
+            userScrollGeneration++
+            scrollToBottom()
         }
     }
 
@@ -254,16 +261,43 @@ internal class ScreenLogPanelView(
                     userScrolling = binding.screenLogList.scrollState != RecyclerView.SCROLL_STATE_IDLE ||
                         userScrollGeneration != scrollGeneration
                 )) {
-                binding.screenLogList.scrollToPosition(filteredEntries.lastIndex)
+                scrollToBottom(scrollGeneration)
             }
-            binding.screenLogList.post { updateJumpToLatestVisibility() }
+            binding.screenLogList.post { updateJumpButtonsVisibility() }
         }
     }
 
-    private fun updateJumpToLatestVisibility() {
-        binding.screenLogJumpToLatest.visibility = if (
-            adapter.itemCount > 0 && binding.screenLogList.canScrollVertically(1)
+    private fun updateJumpButtonsVisibility() {
+        val hasEntries = adapter.itemCount > 0
+        binding.screenLogJumpToTop.visibility = if (
+            hasEntries && binding.screenLogList.canScrollVertically(-1)
         ) View.VISIBLE else View.INVISIBLE
+        binding.screenLogJumpToLatest.visibility = if (
+            hasEntries && binding.screenLogList.canScrollVertically(1)
+        ) View.VISIBLE else View.INVISIBLE
+    }
+
+    private fun scrollToBottom(expectedUserScrollGeneration: Long = userScrollGeneration) {
+        val list = binding.screenLogList
+        val layoutManager = list.layoutManager as? LinearLayoutManager ?: return
+        val lastPosition = adapter.itemCount - 1
+        if (lastPosition < 0) return
+
+        list.doOnNextLayout {
+            list.post {
+                if (userScrollGeneration != expectedUserScrollGeneration ||
+                    list.scrollState != RecyclerView.SCROLL_STATE_IDLE
+                ) return@post
+
+                val lastView = layoutManager.findViewByPosition(lastPosition)
+                if (lastView != null) {
+                    val viewportBottom = list.height - list.paddingBottom
+                    list.scrollBy(0, (lastView.bottom - viewportBottom).coerceAtLeast(0))
+                }
+                updateJumpButtonsVisibility()
+            }
+        }
+        layoutManager.scrollToPositionWithOffset(lastPosition, 0)
     }
 
     private fun updateTags(tags: List<String>) {
