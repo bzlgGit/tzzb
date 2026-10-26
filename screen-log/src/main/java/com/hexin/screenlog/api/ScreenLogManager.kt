@@ -368,6 +368,8 @@ internal object ScreenLogManager {
 
     internal fun copyOptions(): ScreenLogCopyOptions = copyOptions
 
+    internal fun commonTags(): List<String> = config?.commonTags.orEmpty()
+
     internal fun setCopyOptions(options: ScreenLogCopyOptions) {
         copyOptions = options
         preferences?.setCopyOptions(options)

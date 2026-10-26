@@ -11,5 +11,6 @@ internal data class ScreenLogConfig(
     val minLevel: ScreenLogLevel = ScreenLogLevel.DEBUG,
     val maxMemoryEntries: Int = 1000,
     val copyOptions: ScreenLogCopyOptions = ScreenLogCopyOptions(),
-    val hiddenRequestInterfaces: Set<String> = emptySet()
+    val hiddenRequestInterfaces: Set<String> = emptySet(),
+    val commonTags: List<String> = emptyList()
 )

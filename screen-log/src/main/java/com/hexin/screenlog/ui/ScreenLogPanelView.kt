@@ -47,6 +47,7 @@ internal class ScreenLogPanelView(
 
     private val adapter = ScreenLogAdapter(::onEntryClick, ::onEntryLongClick)
     private val binding = ScreenLogPanelViewBinding.inflate(LayoutInflater.from(context), this, true)
+    private val commonTags = ScreenLogManager.commonTags()
     private var filter = state.filter
     private var filteredEntries = emptyList<com.hexin.screenlog.core.ScreenLogEntry>()
     private var refreshPosted = false
@@ -56,13 +57,20 @@ internal class ScreenLogPanelView(
     private var selectionMode = false
     private var autoScrollWasPaused = false
     private var userScrollGeneration = 0L
+    private var touchTargetGesture = false
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent): Boolean = true
 
+        override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+            if (!isTouchTarget(e)) return false
+            ScreenLogManager.toggleTouchMode()
+            return true
+        }
+
         override fun onDoubleTap(e: MotionEvent): Boolean {
             // 顶部操作按钮的连续点击不参与双击切换面板高度。
-            if (e.y <= binding.screenLogNormalBar.bottom && e.x >= binding.screenLogCopyFiltered.left) return false
+            if (e.y <= binding.screenLogNormalBar.bottom && !isTouchTarget(e)) return false
             Log.d(TAG, "onDoubleTap x=${e.x}, y=${e.y}, largeBefore=${state.large}, touchMode=$touchMode")
             if (state.fullscreen) toggleFullscreen() else toggleHeight()
             return true
@@ -111,28 +119,35 @@ internal class ScreenLogPanelView(
         })
         setupFilters()
         setupActions()
-        updateTitle()
+        updateTouchTargetText()
         restoreFilterControls()
         refreshNow()
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        return if (touchMode == ScreenLogTouchMode.UNDERLYING_PAGE) {
-            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            touchTargetGesture = isTouchTarget(event)
+        }
+        if (touchMode == ScreenLogTouchMode.UNDERLYING_PAGE) {
+            if (touchTargetGesture) gestureDetector.onTouchEvent(event)
+            if (!touchTargetGesture && event.actionMasked == MotionEvent.ACTION_DOWN) {
                 trace("dispatchTouchEvent pass through, action=${event.actionName()}, x=${event.x}, y=${event.y}")
             }
-            false
-        } else {
-            if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_UP) {
-                trace("dispatchTouchEvent handle, action=${event.actionName()}, x=${event.x}, y=${event.y}")
+            val handled = touchTargetGesture
+            if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                touchTargetGesture = false
             }
-            val handledByGesture = gestureDetector.onTouchEvent(event)
-            val handledByChildren = super.dispatchTouchEvent(event)
-            if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_UP) {
-                trace("dispatchTouchEvent result, action=${event.actionName()}, gesture=$handledByGesture, children=$handledByChildren")
-            }
-            handledByChildren || handledByGesture
+            return handled
         }
+        if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_UP) {
+            trace("dispatchTouchEvent handle, action=${event.actionName()}, x=${event.x}, y=${event.y}")
+        }
+        val handledByGesture = gestureDetector.onTouchEvent(event)
+        val handledByChildren = super.dispatchTouchEvent(event)
+        if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_UP) {
+            trace("dispatchTouchEvent result, action=${event.actionName()}, gesture=$handledByGesture, children=$handledByChildren")
+        }
+        return handledByChildren || handledByGesture
     }
 
     override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
@@ -152,6 +167,15 @@ internal class ScreenLogPanelView(
     fun setTouchMode(mode: ScreenLogTouchMode) {
         trace("setTouchMode from=$touchMode to=$mode")
         touchMode = mode
+        updateTouchTargetText()
+    }
+
+    private fun isTouchTarget(event: MotionEvent): Boolean {
+        val bar = binding.screenLogNormalBar
+        val title = binding.screenLogTitle
+        return bar.visibility == View.VISIBLE &&
+            event.x >= bar.left + title.left && event.x < bar.left + title.right &&
+            event.y >= bar.top + title.top && event.y < bar.top + title.bottom
     }
 
     override fun onAttachedToWindow() {
@@ -185,6 +209,12 @@ internal class ScreenLogPanelView(
     private fun setupFilters() {
         val levels = listOf(context.getString(R.string.screen_log_level_all)) + ScreenLogLevel.values().map { it.name }
         binding.screenLogLevel.adapter = spinnerAdapter(levels)
+        binding.screenLogCommonTag.adapter = spinnerAdapter(
+            listOf(context.getString(R.string.screen_log_common_tag_all)) + commonTags
+        )
+        binding.screenLogCommonTag.setSelection(
+            if (state.commonTagSelected) commonTags.indexOf(filter.tag) + 1 else 0
+        )
         binding.screenLogLevel.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (suppressFilterCallbacks) return
@@ -195,13 +225,22 @@ internal class ScreenLogPanelView(
 
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
+        binding.screenLogCommonTag.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (suppressFilterCallbacks || binding.screenLogCommonTag.selectedItemPosition != position ||
+                    (position == 0 && !state.commonTagSelected)
+                ) return
+                selectTag(commonTags.getOrNull(position - 1), fromCommonTags = true)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
         binding.screenLogTag.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (suppressFilterCallbacks) return
-                val selected = parent?.getItemAtPosition(position)?.toString().orEmpty()
-                filter = filter.copy(tag = selected.takeIf { it != context.getString(R.string.screen_log_tag_all) })
-                state.filter = filter
-                refreshNow()
+                if (suppressFilterCallbacks || binding.screenLogTag.selectedItemPosition != position ||
+                    (position == 0 && state.commonTagSelected)
+                ) return
+                selectTag(if (position == 0) null else parent?.getItemAtPosition(position)?.toString())
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
@@ -301,8 +340,13 @@ internal class ScreenLogPanelView(
     }
 
     private fun updateTags(tags: List<String>) {
+        if (!state.commonTagSelected && filter.tag != null && filter.tag !in tags) {
+            filter = filter.copy(tag = null)
+            state.filter = filter
+        }
         val values = listOf(context.getString(R.string.screen_log_tag_all)) + tags
-        val selectedTag = filter.tag ?: context.getString(R.string.screen_log_tag_all)
+        val selectedTag = filter.tag.takeUnless { state.commonTagSelected }
+            ?: context.getString(R.string.screen_log_tag_all)
         val existing = (binding.screenLogTag.adapter as? ArrayAdapter<*>)?.let { adapter ->
             (0 until adapter.count).map { adapter.getItem(it).toString() }
         }
@@ -322,6 +366,24 @@ internal class ScreenLogPanelView(
         suppressFilterCallbacks = false
     }
 
+    private fun selectTag(tag: String?, fromCommonTags: Boolean = false) {
+        val commonSelected = tag != null && fromCommonTags
+        if (filter.tag == tag && state.commonTagSelected == commonSelected) return
+        filter = filter.copy(tag = tag)
+        state.filter = filter
+        state.commonTagSelected = commonSelected
+        updateCommonTagSelection()
+        refreshNow()
+    }
+
+    private fun updateCommonTagSelection() {
+        val selectedIndex = if (state.commonTagSelected) commonTags.indexOf(filter.tag) + 1 else 0
+        if (binding.screenLogCommonTag.selectedItemPosition == selectedIndex) return
+        suppressFilterCallbacks = true
+        binding.screenLogCommonTag.setSelection(selectedIndex)
+        suppressFilterCallbacks = false
+    }
+
     private fun toggleHeight() {
         val oldHeight = layoutParams?.height ?: 0
         state.toggleCompactSize()
@@ -329,7 +391,6 @@ internal class ScreenLogPanelView(
         val newHeight = panelHeight()
         trace("toggleHeight large=${state.large}, oldHeight=$oldHeight, newHeight=$newHeight, parent=${parent?.javaClass?.simpleName}")
         layoutParams = layoutParams.apply { height = newHeight }
-        updateTitle()
         requestLayout()
     }
 
@@ -343,15 +404,12 @@ internal class ScreenLogPanelView(
             } else 0
         }
         updateFullscreenAction()
-        updateTitle()
     }
 
-    private fun updateTitle() {
+    private fun updateTouchTargetText() {
         binding.screenLogTitle.setText(
-            when {
-                state.fullscreen || state.large -> R.string.screen_log_double_tap_shrink
-                else -> R.string.screen_log_double_tap_expand
-            }
+            if (touchMode == ScreenLogTouchMode.LOG_PANEL) R.string.screen_log_touch_current_panel
+            else R.string.screen_log_touch_current_page
         )
     }
 
@@ -387,6 +445,12 @@ internal class ScreenLogPanelView(
         val levelIndex = filter.level?.let { ScreenLogLevel.values().indexOf(it) + 1 } ?: 0
         binding.screenLogLevel.setSelection(levelIndex.coerceAtLeast(0))
         suppressFilterCallbacks = false
+        if (state.commonTagSelected && filter.tag !in commonTags) {
+            filter = filter.copy(tag = null)
+            state.filter = filter
+            state.commonTagSelected = false
+        }
+        updateCommonTagSelection()
     }
 
     private fun saveListPosition() {
@@ -486,6 +550,7 @@ internal class ScreenLogPanelView(
         listOf(
             binding.screenLogSearch,
             binding.screenLogLevel,
+            binding.screenLogCommonTag,
             binding.screenLogTag
         ).forEach {
             it.isEnabled = enabled

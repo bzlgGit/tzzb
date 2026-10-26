@@ -105,7 +105,8 @@ class App : Application() {
 
         ScreenLogKit.init(
             application = this,
-            hiddenRequestInterfaces = setOf("/api/large-data", "/api/frequent-poll")
+            hiddenRequestInterfaces = setOf("/api/large-data", "/api/frequent-poll"),
+            commonTags = listOf("Login", "Network", "FutureFeature")
         )
     }
 }
@@ -170,6 +171,7 @@ ScreenLog.e(tag, message, throwable = null, prettyJson = false, extras = null)
 | --- | --- | --- |
 | `application` | 必填 | 用于生命周期监听和日志目录定位 |
 | `hiddenRequestInterfaces` | 空集合 | 默认不记录的接口标识；使用不含动态参数的稳定路径 |
+| `commonTags` | 空列表 | 编译时传入的常用 Tag；即使当前没有对应日志，也能提前选择 |
 | 文件保存 | 关闭 | 测试人员可在设置页开启；开启后保留 1 天，单日文件上限 10 MB |
 | 最低级别 | `DEBUG` | 低于该等级的日志直接忽略 |
 | 内存容量 | 1000 条 | 超出后淘汰最早的日志 |
@@ -187,9 +189,9 @@ ScreenLog.e(tag, message, throwable = null, prettyJson = false, extras = null)
 - 面板默认占屏幕高度 `1/3`，双击面板切换到 `2/3`，再次双击恢复。
 - 顶部“全屏”可展开至整个页面，按钮变为“收起”；收起恢复进入全屏前的小屏或中屏尺寸。全屏期间双击不改变此前尺寸。
 - 面板不再展示“记录日志”和“自动滚动”开关，这两项可在悬浮菜单或设置页调整；顶部“清空屏幕”仅清内存。
-- 支持关键字、日志等级和 Tag 筛选。
+- 支持关键字、日志等级、常用 Tag 和日志 Tag 筛选。两个 Tag 入口共用一个筛选条件，选择其中一个会重置另一个。
 - 长按日志进入多选，点击其他日志增减选择，可全选当前筛选结果后统一复制。
-- 顶部复制图标可一键复制当前筛选结果；复制字段由 `ScreenLogCopyOptions` 控制，默认仅复制 message。
+- 顶部“复制”可一键复制当前筛选结果；复制字段由 `ScreenLogCopyOptions` 控制，默认仅复制 message。
 - 关闭“自动滚动”只停止列表跟随，不影响日志记录。
 - 悬浮入口支持拖动并自动吸附左右边缘，快捷菜单会限制在当前页面范围内，矮屏下可滚动操作。
 - 面板和快捷菜单中的“清空日志”仅清空内存并刷新列表，保留已保存文件；设置页的清空操作仍删除内存和文件。
@@ -212,15 +214,15 @@ ScreenLog.request("/api/orders", ScreenLogRequestPhase.RESPONSE, () -> responseB
 | 模式 | 行为 |
 | --- | --- |
 | `LOG_PANEL` | 面板接收触摸，可滚动、筛选、复制和双击改变高度 |
-| `UNDERLYING_PAGE` | 面板不主动处理触摸，用于操作下层业务页面 |
+| `UNDERLYING_PAGE` | 除顶部触摸目标入口外，面板不主动处理触摸，用于操作下层业务页面 |
 
-悬浮菜单和设置页中的“日志面板 / 下层页面”分段选项可快速切换。
+面板顶部触摸目标入口、悬浮菜单和设置页中的“日志面板 / 下层页面”分段选项均可切换。
 
 ## 对外 API
 
 | API | 用途 |
 | --- | --- |
-| `ScreenLogKit.init(application, hiddenRequestInterfaces)` | 在 Application 中初始化一次，恢复已保存的总开关、录制和接口状态 |
+| `ScreenLogKit.init(application, hiddenRequestInterfaces, commonTags)` | 在 Application 中初始化一次，传入常用 Tag 并恢复已保存的总开关、录制和接口状态 |
 | `ScreenLogKit.open(activity)` | 开启录制并显示悬浮入口 |
 | `ScreenLogKit.close()` | 停止录制并隐藏悬浮入口和面板 |
 | `ScreenLogKit.isOpen()` | 读取已保存的总开关状态，供业务入口显示使用 |
@@ -261,6 +263,8 @@ provider 仅负责生成日志内容，不应改变业务响应的解析和处�
 4. 关闭该接口开关并再次点击，确认停止新增记录。点击 `Close screen log` 后所有 provider 均不执行；重新开启后接口开关状态保持不变。保持开启状态杀死并重启示例 App，确认录制、接口开关和悬浮入口都自动恢复。
 
 5. 开启 `/mock/large-response` 后点击 `Test provider exception`，确认日志面板出现包含模拟异常及堆栈的 `Request` 错误日志；关闭该接口后再点击，确认 provider 不会执行。
+
+6. 在“常用 Tag”中预先选择 `FutureFeature`，此时列表没有对应日志；返回示例页点击 `Emit FutureFeature log`，确认日志面板在保持筛选的情况下显示新日志。
 
 这两个接口仅用于本地验证，没有实际网络请求；示例页在 provider 中执行 `gson.fromJson`。
 

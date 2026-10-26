@@ -9,7 +9,8 @@ class DemoApplication : Application() {
         super.onCreate()
         ScreenLogKit.init(
             application = this,
-            hiddenRequestInterfaces = setOf("/mock/large-response", "/mock/frequent-poll")
+            hiddenRequestInterfaces = setOf("/mock/large-response", "/mock/frequent-poll"),
+            commonTags = listOf("Login", "Network", "WebView", "JSBridge", "FutureFeature")
         )
     }
 }

@@ -6,6 +6,7 @@ internal data class ScreenLogPanelState(
     var large: Boolean = false,
     var fullscreen: Boolean = false,
     var filter: ScreenLogFilter = ScreenLogFilter(),
+    var commonTagSelected: Boolean = false,
     var listPosition: Int = -1,
     var listOffset: Int = 0,
     var floatingX: Int? = null,

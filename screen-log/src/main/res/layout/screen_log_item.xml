@@ -67,8 +67,6 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:ellipsize="end"
-        android:maxLines="1"
         android:textColor="@color/screen_log_text_secondary"
         android:textSize="11sp"
         android:visibility="gone"

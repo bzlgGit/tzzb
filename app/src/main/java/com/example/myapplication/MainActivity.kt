@@ -92,11 +92,21 @@ class MainActivity : Activity() {
                     appendTestLog(testLogIndex)
                 }
             },
+            button("Emit FutureFeature log") {
+                testLogIndex += 1
+                ScreenLog.i("FutureFeature", "late common tag log #$testLogIndex")
+                requestStatus.text = "已输出 FutureFeature 日志 #$testLogIndex"
+            },
             button("Test large response API") {
                 appendRequestTestLog(LARGE_RESPONSE_API, requestStatus)
             },
             button("Test frequent poll API") {
                 appendRequestTestLog(FREQUENT_POLL_API, requestStatus)
+            },
+            button("Test long API wrapping") {
+                appendRequestTestLog(LONG_PATH_API, requestStatus)
+                appendRequestTestLog(LONG_QUERY_API, requestStatus)
+                requestStatus.text = "已写入 2 组长 API 请求日志，请在屏幕日志中查看完整换行"
             },
             button("Test provider exception") {
                 appendFailingRequestLog(LARGE_RESPONSE_API, requestStatus)
@@ -212,5 +222,7 @@ class MainActivity : Activity() {
     private companion object {
         const val LARGE_RESPONSE_API = "/mock/large-response"
         const val FREQUENT_POLL_API = "/mock/frequent-poll"
+        const val LONG_PATH_API = "/api/v2/portfolio/positions/history/transactions/reconciliation/details/very-long-resource-identifier-123456789012345678901234567890"
+        const val LONG_QUERY_API = "https://example.com/api/v2/accounts/12345678901234567890/holdings/valuation/history?startDate=2026-01-01&endDate=2026-12-31&includePending=true"
     }
 }

@@ -11,12 +11,17 @@ object ScreenLogKit {
 
     @JvmStatic
     @JvmOverloads
-    fun init(application: Application, hiddenRequestInterfaces: Set<String> = emptySet()) {
+    fun init(
+        application: Application,
+        hiddenRequestInterfaces: Set<String> = emptySet(),
+        commonTags: List<String> = emptyList()
+    ) {
         val restoreEntry = ScreenLogPreferences(application).entryEnabled()
         val cfg = ScreenLogConfig(
             application = application,
             enable = true,
-            hiddenRequestInterfaces = hiddenRequestInterfaces
+            hiddenRequestInterfaces = hiddenRequestInterfaces,
+            commonTags = commonTags.map(String::trim).filter(String::isNotEmpty).distinct()
         )
         config = cfg
         ScreenLogManager.init(cfg.copy(enable = restoreEntry))

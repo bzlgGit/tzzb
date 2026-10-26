@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="screen_log_entry">日志</string>
-    <string name="screen_log_double_tap_expand">双击放大</string>
-    <string name="screen_log_double_tap_shrink">双击缩小</string>
+    <string name="screen_log_touch_current_panel">触摸：日志</string>
+    <string name="screen_log_touch_current_page">触摸：页面</string>
     <string name="screen_log_search_hint">搜索 Tag、message、extras</string>
     <string name="screen_log_level_all">全部等级</string>
-    <string name="screen_log_tag_all">全部 Tag</string>
+    <string name="screen_log_common_tag_all">常用 Tag</string>
+    <string name="screen_log_tag_all">日志 Tag</string>
     <string name="screen_log_copy_filtered">复制</string>
     <string name="screen_log_copy_action">复制</string>
     <string name="screen_log_cancel_selection">取消</string>
