@@ -1,5 +1,10 @@
 package com.hexin.screenlog.ui
 
+import android.content.Context
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.BackgroundColorSpan
+import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -22,6 +27,13 @@ class ScreenLogAdapter(
         java.util.IdentityHashMap<ScreenLogEntry, Boolean>()
     )
     private var selectionMode = false
+    private var searchKeyword = ""
+
+    fun setSearchKeyword(keyword: String) {
+        if (searchKeyword == keyword) return
+        searchKeyword = keyword
+        notifyItemRangeChanged(0, itemCount)
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
         val binding = ScreenLogItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -50,13 +62,13 @@ class ScreenLogAdapter(
             binding.screenLogTime.text = ScreenLogFormatter.formatTime(entry.timeMillis)
             binding.screenLogLevelText.text = entry.level.name.take(1)
             binding.screenLogLevelText.setTextColor(ContextCompat.getColor(itemView.context, colorFor(entry.level)))
-            binding.screenLogTagText.text = entry.tag
+            binding.screenLogTagText.text = highlight(entry.tag, itemView.context)
             val requestLabel = ScreenLogFormatter.requestLabel(entry)
-            binding.screenLogRequestHeader.text = requestLabel
+            binding.screenLogRequestHeader.text = requestLabel?.let { highlight(it, itemView.context) }
             binding.screenLogRequestHeader.visibility = if (requestLabel == null) View.GONE else View.VISIBLE
-            binding.screenLogMessage.text = ScreenLogFormatter.formatBody(entry)
+            binding.screenLogMessage.text = highlight(ScreenLogFormatter.formatBody(entry), itemView.context)
             val extrasText = ScreenLogFormatter.visibleExtras(entry).entries.joinToString { "${it.key}=${it.value}" }
-            binding.screenLogExtras.text = extrasText
+            binding.screenLogExtras.text = highlight(extrasText, itemView.context)
             binding.screenLogExtras.visibility = if (extrasText.isBlank()) View.GONE else View.VISIBLE
             val selected = selectedEntries.contains(entry)
             binding.screenLogSelection.visibility = if (selectionMode) View.VISIBLE else View.GONE
@@ -111,6 +123,21 @@ class ScreenLogAdapter(
     }
 
     fun isSelected(entry: ScreenLogEntry): Boolean = selectedEntries.contains(entry)
+
+    private fun highlight(value: String, context: Context): CharSequence {
+        if (searchKeyword.isEmpty()) return value
+        val styled = SpannableString(value)
+        val background = ContextCompat.getColor(context, R.color.screen_log_search_highlight)
+        val foreground = ContextCompat.getColor(context, R.color.screen_log_search_highlight_text)
+        var start = value.indexOf(searchKeyword, ignoreCase = true)
+        while (start >= 0) {
+            val end = start + searchKeyword.length
+            styled.setSpan(BackgroundColorSpan(background), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            styled.setSpan(ForegroundColorSpan(foreground), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            start = value.indexOf(searchKeyword, startIndex = end, ignoreCase = true)
+        }
+        return styled
+    }
 
     private fun colorFor(level: ScreenLogLevel): Int {
         return when (level) {

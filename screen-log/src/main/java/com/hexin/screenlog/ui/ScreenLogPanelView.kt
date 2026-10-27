@@ -13,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -58,6 +59,10 @@ internal class ScreenLogPanelView(
     private var autoScrollWasPaused = false
     private var userScrollGeneration = 0L
     private var touchTargetGesture = false
+    private var panelDragDownY = 0f
+    private var panelDragStartOffset = 0f
+    private var panelDragging = false
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent): Boolean = true
@@ -90,6 +95,7 @@ internal class ScreenLogPanelView(
         layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, panelHeight(), Gravity.BOTTOM)
         binding.screenLogList.layoutManager = LinearLayoutManager(context)
         binding.screenLogList.adapter = adapter
+        addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> constrainPanelPosition() }
         trace("init, defaultHeight=${panelHeight()}, root=${binding.root.javaClass.simpleName}")
         binding.root.setOnTouchListener { _, event ->
             if (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_UP) {
@@ -127,7 +133,13 @@ internal class ScreenLogPanelView(
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         if (event.actionMasked == MotionEvent.ACTION_DOWN) {
             touchTargetGesture = isTouchTarget(event)
+            if (touchTargetGesture) {
+                panelDragDownY = event.rawY
+                panelDragStartOffset = state.panelOffsetY
+                panelDragging = false
+            }
         }
+        if (touchTargetGesture && handlePanelDrag(event)) return true
         if (touchMode == ScreenLogTouchMode.UNDERLYING_PAGE) {
             if (touchTargetGesture) gestureDetector.onTouchEvent(event)
             if (!touchTargetGesture && event.actionMasked == MotionEvent.ACTION_DOWN) {
@@ -148,6 +160,51 @@ internal class ScreenLogPanelView(
             trace("dispatchTouchEvent result, action=${event.actionName()}, gesture=$handledByGesture, children=$handledByChildren")
         }
         return handledByChildren || handledByGesture
+    }
+
+    private fun handlePanelDrag(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_MOVE -> {
+                if (!state.fullscreen && !panelDragging &&
+                    kotlin.math.abs(event.rawY - panelDragDownY) > touchSlop
+                ) {
+                    panelDragging = true
+                    val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
+                    gestureDetector.onTouchEvent(cancel)
+                    if (touchMode == ScreenLogTouchMode.LOG_PANEL) super.dispatchTouchEvent(cancel)
+                    cancel.recycle()
+                }
+                if (panelDragging) {
+                    state.panelOffsetY = panelDragStartOffset + event.rawY - panelDragDownY
+                    constrainPanelPosition()
+                    return true
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (panelDragging) {
+                    panelDragging = false
+                    touchTargetGesture = false
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private fun constrainPanelPosition() {
+        val host = parent as? ViewGroup ?: return
+        if (host.height == 0 || height == 0) return
+        if (state.fullscreen) {
+            translationY = 0f
+            return
+        }
+        val topInset = ScreenLogPanelInsets.topMargin(host)
+        val bottom = host.height - (layoutParams as LayoutParams).bottomMargin
+        val defaultTop = bottom - height
+        state.panelOffsetY = state.panelOffsetY.coerceIn(
+            (topInset - defaultTop).coerceAtMost(0).toFloat(), 0f
+        )
+        translationY = state.panelOffsetY
     }
 
     override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
@@ -286,6 +343,7 @@ internal class ScreenLogPanelView(
         val entries = ScreenLogDispatcher.snapshot()
         updateTags(entries.map { it.tag }.distinct().sorted())
         filteredEntries = ScreenLogFilterMatcher.filter(entries, filter)
+        adapter.setSearchKeyword(filter.keyword.trim())
         adapter.submitList(filteredEntries) {
             if (selectionMode && selectedEntries().isEmpty()) {
                 exitSelectionMode()
@@ -392,6 +450,7 @@ internal class ScreenLogPanelView(
         trace("toggleHeight large=${state.large}, oldHeight=$oldHeight, newHeight=$newHeight, parent=${parent?.javaClass?.simpleName}")
         layoutParams = layoutParams.apply { height = newHeight }
         requestLayout()
+        post { constrainPanelPosition() }
     }
 
     private fun toggleFullscreen() {
@@ -404,6 +463,7 @@ internal class ScreenLogPanelView(
             } else 0
         }
         updateFullscreenAction()
+        post { constrainPanelPosition() }
     }
 
     private fun updateTouchTargetText() {

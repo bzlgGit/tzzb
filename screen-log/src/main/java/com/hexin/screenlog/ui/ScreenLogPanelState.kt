@@ -9,6 +9,7 @@ internal data class ScreenLogPanelState(
     var commonTagSelected: Boolean = false,
     var listPosition: Int = -1,
     var listOffset: Int = 0,
+    var panelOffsetY: Float = 0f,
     var floatingX: Int? = null,
     var floatingY: Int? = null
 ) {

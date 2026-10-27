@@ -130,9 +130,10 @@ View 本身会持有创建它的 Activity Context，因此在 `onActivityPaused`
 - 面板是否为 `2/3` 高度。
 - 关键字、Tag、等级筛选。
 - 首个可见列表位置和像素偏移。
+- 面板相对底部的拖动偏移。
 - 悬浮入口 X/Y 坐标。
 
-状态不包含 `Activity`、`View`、`Adapter` 或 `LayoutManager`，因此不会反向持有旧页面。筛选条件和列表位置与应用进程同生命周期；面板高度、悬浮入口坐标等用户偏好通过 `ScreenLogPreferences` 跨进程恢复。
+状态不包含 `Activity`、`View`、`Adapter` 或 `LayoutManager`，因此不会反向持有旧页面。筛选条件、列表位置和面板拖动偏移与应用进程同生命周期；面板高度、悬浮入口坐标等用户偏好通过 `ScreenLogPreferences` 跨进程恢复。
 
 ## 6. 面板实现
 
@@ -146,9 +147,12 @@ View 本身会持有创建它的 Activity Context，因此在 `onActivityPaused`
 
 长按日志进入多选模式，选中状态按日志对象维护；多选期间筛选条件锁定并暂停自动滚动，退出后恢复原状态。“全选”仅作用于当前筛选结果。复制展示格式与剪贴板格式分离，剪贴板默认只输出 message，可通过 `ScreenLogCopyOptions` 增加时间、等级、Tag、线程名和 extras。单条日志启用 `prettyJson` 后，JSON Object 或 JSON Array 类型的 message 会在展示和复制时以两空格缩进，原始 message 仍用于搜索和文件持久化。
 
+关键字筛选不区分大小写；Adapter 对标签、请求标题、正文和附加信息中实际显示的命中字符加高亮。筛选刷新不会主动跳到第一条结果；原列表位于底部且允许自动滚动时，继续跟随到最后一条结果。
+
 ### 高度切换
 
 面板默认高度为屏幕 `1/3`，双击后设置为 `2/3`。手势检测位于面板的 `dispatchTouchEvent()`，同时保留子 View 的滚动和长按事件处理。
+顶部标题区域可上下拖动面板，偏移限制在宿主可见区域并跨 Activity 保留；全屏期间暂时归位，退出全屏后恢复拖动偏移。
 
 ### 自动滚动
 
@@ -171,7 +175,7 @@ View 本身会持有创建它的 Activity Context，因此在 `onActivityPaused`
 ### 触摸模式
 
 - `LOG_PANEL`：面板参与事件分发，允许滚动、输入、复制和双击。
-- `UNDERLYING_PAGE`：面板的 `dispatchTouchEvent()` 返回 `false`，目标是允许操作下层页面。
+- `UNDERLYING_PAGE`：顶部标题区域仍处理触摸目标切换和拖动，其余面板区域的 `dispatchTouchEvent()` 返回 `false`，用于操作下层页面。
 
 该透传方案依赖 Android 当前 View 层级的事件分发行为，需要在目标宿主中做一次真机交互验收。
 
